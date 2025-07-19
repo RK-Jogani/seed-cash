@@ -302,7 +302,7 @@ class DefaultToast(BaseToastOverlayManagerThread):
         )
 
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             label_text=self.label_text,
             color=GUIConstants.BODY_FONT_COLOR,
@@ -313,7 +313,7 @@ class DefaultToast(BaseToastOverlayManagerThread):
 
 class InfoToast(DefaultToast):
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             icon_name=SeedCashIconConstants.INFO,
             label_text=self.label_text,
@@ -325,7 +325,7 @@ class InfoToast(DefaultToast):
 
 class SuccessToast(DefaultToast):
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             icon_name=SeedCashIconConstants.SUCCESS,
             label_text=self.label_text,
@@ -337,7 +337,7 @@ class SuccessToast(DefaultToast):
 
 class WarningToast(DefaultToast):
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             icon_name=SeedCashIconConstants.WARNING,
             label_text=self.label_text,
@@ -349,7 +349,7 @@ class WarningToast(DefaultToast):
 
 class DireWarningToast(DefaultToast):
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             icon_name=SeedCashIconConstants.WARNING,
             label_text=self.label_text,
@@ -361,7 +361,7 @@ class DireWarningToast(DefaultToast):
 
 class ErrorToast(DefaultToast):
     def instantiate_toast(self) -> ToastOverlay:
-        body_font_size = GUIConstants.get_body_font_size()
+        body_font_size = GUIConstants.BODY_FONT_SIZE
         return ToastOverlay(
             icon_name=SeedCashIconConstants.ERROR,
             label_text=self.label_text,
