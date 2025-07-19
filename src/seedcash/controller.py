@@ -242,7 +242,7 @@ class Controller(Singleton):
         * initial_destination: The first View to run. If None, the MainMenuView is
         used. Only used by the test suite.
         """
-        from seedcash.views import MainMenuView, BackStackView
+        from seedcash.views.view import MainMenuView, BackStackView
         from seedcash.views.screensaver import OpeningSplashView
         from seedcash.gui.toast import RemoveSDCardToastManagerThread
 

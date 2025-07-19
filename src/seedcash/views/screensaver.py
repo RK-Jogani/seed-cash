@@ -72,8 +72,8 @@ class OpeningSplashScreen(LogoScreen):
 
         # Display version num below SeedSigner logo
         font = Fonts.get_font(
-            GUIConstants.get_body_font_name(),
-            GUIConstants.get_top_nav_title_font_size(),
+            GUIConstants.BODY_FONT_NAME,
+            GUIConstants.TOP_NAV_TITLE_FONT_SIZE,
         )
         version = f"v{controller.VERSION}"
 
@@ -95,33 +95,6 @@ class OpeningSplashScreen(LogoScreen):
         )
 
         if not self.is_screenshot_renderer:
-            self.renderer.show_image()
-
-            font = Fonts.get_font(
-                GUIConstants.get_top_nav_title_font_name(),
-                GUIConstants.get_body_font_size(),
-            )
-            # TRANSLATOR_NOTE: This is on the opening splash screen, displayed above the HRF logo
-            sponsor_text = _("With support from:")
-            (left, top, tw, th) = font.getbbox(sponsor_text, anchor="lt")
-
-            x = int((self.renderer.canvas_width) / 2)
-            y = (
-                self.canvas_height
-                - GUIConstants.COMPONENT_PADDING
-                - int(GUIConstants.COMPONENT_PADDING / 2)
-                - th
-            )
-            self.renderer.draw.text(
-                xy=(x, y), text=sponsor_text, font=font, fill="#ccc", anchor="mt"
-            )
-            self.renderer.canvas.paste(
-                (
-                    int((self.renderer.canvas_width) / 2),
-                    y + th + int(GUIConstants.COMPONENT_PADDING / 2),
-                ),
-            )
-
             self.renderer.show_image()
 
         if not self.is_screenshot_renderer:

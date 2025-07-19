@@ -1,13 +1,17 @@
 from PIL import Image, ImageDraw
 from threading import Lock
 
-# from seedsigner.hardware.st7789_mpy import ST7789
-from seedcash.hardware.displays.display_driver import ALL_DISPLAY_TYPES, DISPLAY_TYPE__ILI9341, DISPLAY_TYPE__ILI9486, DISPLAY_TYPE__ST7789, DisplayDriver
-from seedcash.hardware.displays.ili9341 import ILI9341, ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT
+#from seedsigner.hardware.ST7789 import ST7789
+from seedcash.emulator.desktopDisplay import desktopDisplay
+from seedcash.models.singleton import ConfigurableSingleton
 from seedcash.models.settings import Settings
 from seedcash.models.settings_definition import SettingsConstants
-from seedcash.models.singleton import ConfigurableSingleton
 
+DISPLAY_TYPE__ST7789 = "st7789"
+DISPLAY_TYPE__ILI9341 = "ili9341"
+DISPLAY_TYPE__ILI9486 = "ili9486"
+
+ALL_DISPLAY_TYPES = [DISPLAY_TYPE__ST7789, DISPLAY_TYPE__ILI9341, DISPLAY_TYPE__ILI9486]
 
 
 class Renderer(ConfigurableSingleton):
@@ -26,10 +30,10 @@ class Renderer(ConfigurableSingleton):
         renderer = cls.__new__(cls)
         cls._instance = renderer
 
-        renderer.initialize_display()
+        renderer.initialize_display() # (compatibility with the merged SeedSigner PR #741)
 
 
-    def initialize_display(self):
+    def initialize_display(self): # (compatibility with the merged SeedSigner PR #741)
         # May be called while already running with a previous display driver; must
         # prevent any other screen writes while we're changing the display driver.
         self.lock.acquire()
@@ -40,8 +44,17 @@ class Renderer(ConfigurableSingleton):
             raise Exception(f"Invalid display type: {self.display_type}")
 
         width, height = display_config.split("_")[1].split("x")
-        self.disp = DisplayDriver(self.display_type, width=int(width), height=int(height))
 
+        if self.disp is None:  # Checks if an active instance already exists
+            # If it doesn't exist, creates a new instance
+            self.disp = desktopDisplay(self.display_type, width=int(width), height=int(height))
+        else:
+            # Modifies the existing instance without creating a new one
+            self.disp.display_type = self.display_type
+            self.disp.width = int(width)
+            self.disp.height = int(height)
+            self.disp.update_geometry()
+    
         if Settings.get_instance().get_value(SettingsConstants.SETTING__DISPLAY_COLOR_INVERTED, default_if_none=True) == SettingsConstants.OPTION__ENABLED:
             self.disp.invert()
 
@@ -59,11 +72,11 @@ class Renderer(ConfigurableSingleton):
 
         self.lock.release()
 
-
+        
     def show_image(self, image=None, alpha_overlay=None, show_direct=False):
         if show_direct:
             # Use the incoming image as the canvas and immediately render
-            self.disp.show_image(image, 0, 0)
+            self.disp.ShowImage(image, 0, 0)
             return
 
         if alpha_overlay:
@@ -75,7 +88,7 @@ class Renderer(ConfigurableSingleton):
             # Always write to the current canvas, rather than trying to replace it
             self.canvas.paste(image)
 
-        self.disp.show_image(self.canvas, 0, 0)
+        self.disp.ShowImage(self.canvas, 0, 0)
 
 
     def show_image_pan(self, image, start_x, start_y, end_x, end_y, rate, alpha_overlay=None):
@@ -109,7 +122,7 @@ class Renderer(ConfigurableSingleton):
             # Always keep a copy of the current display in the canvas
             self.canvas.paste(crop)
 
-            self.disp.show_image(crop, 0, 0)
+            self.disp.ShowImage(crop, 0, 0)
 
 
 
