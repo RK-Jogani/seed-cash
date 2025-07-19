@@ -24,27 +24,21 @@ class LogoScreen(BaseScreen):
     def _run(self):
         pass
 
-    def get_random_partner(self) -> str:
-        return self.partners[random.randrange(len(self.partners))]
-
 
 @dataclass
 class OpeningSplashView(View):
     is_screenshot_renderer: bool = False
-    force_partner_logos: bool | None = None
 
     def run(self):
         self.run_screen(
             OpeningSplashScreen,
             is_screenshot_renderer=self.is_screenshot_renderer,
-            force_partner_logos=self.force_partner_logos,
         )
 
 
 class OpeningSplashScreen(LogoScreen):
-    def __init__(self, is_screenshot_renderer=False, force_partner_logos=None):
+    def __init__(self, is_screenshot_renderer=False):
         self.is_screenshot_renderer = is_screenshot_renderer
-        self.force_partner_logos = force_partner_logos
         super().__init__()
 
     def _render(self):
@@ -59,19 +53,8 @@ class OpeningSplashScreen(LogoScreen):
         # instantiated. This is a hack to clear the screen for now.
         self.clear_screen()
 
-        show_partner_logos = (
-            Settings.get_instance().get_value(SettingsConstants.SETTING__PARTNER_LOGOS)
-            == SettingsConstants.OPTION__ENABLED
-        )
-        if self.force_partner_logos is not None:
-            show_partner_logos = self.force_partner_logos
-
         logo_offset_x = int((self.canvas_width - self.logo.width) / 2)
-
-        if show_partner_logos:
-            logo_offset_y = -56
-        else:
-            logo_offset_y = 0
+        logo_offset_y = 0
 
         background = Image.new("RGBA", size=self.logo.size, color="black")
         if not self.is_screenshot_renderer:
@@ -114,13 +97,6 @@ class OpeningSplashScreen(LogoScreen):
         if not self.is_screenshot_renderer:
             self.renderer.show_image()
 
-        if show_partner_logos:
-            if not self.is_screenshot_renderer:
-                # Hold on the version num for a moment
-                time.sleep(1)
-
-            # Set up the partner logo
-            partner_logo: Image.Image = self.partner_logos[self.get_random_partner()]
             font = Fonts.get_font(
                 GUIConstants.get_top_nav_title_font_name(),
                 GUIConstants.get_body_font_size(),
@@ -133,7 +109,6 @@ class OpeningSplashScreen(LogoScreen):
             y = (
                 self.canvas_height
                 - GUIConstants.COMPONENT_PADDING
-                - partner_logo.height
                 - int(GUIConstants.COMPONENT_PADDING / 2)
                 - th
             )
@@ -141,9 +116,8 @@ class OpeningSplashScreen(LogoScreen):
                 xy=(x, y), text=sponsor_text, font=font, fill="#ccc", anchor="mt"
             )
             self.renderer.canvas.paste(
-                partner_logo,
                 (
-                    int((self.renderer.canvas_width - partner_logo.width) / 2),
+                    int((self.renderer.canvas_width) / 2),
                     y + th + int(GUIConstants.COMPONENT_PADDING / 2),
                 ),
             )
