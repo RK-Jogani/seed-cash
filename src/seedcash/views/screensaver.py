@@ -70,7 +70,7 @@ class OpeningSplashScreen(LogoScreen):
             # Skip animation for the screenshot generator
             self.renderer.canvas.paste(self.logo, (logo_offset_x, logo_offset_y))
 
-        # Display version num below SeedSigner logo
+        # Display version num below SeedCash logo
         font = Fonts.get_font(
             GUIConstants.BODY_FONT_NAME,
             GUIConstants.TOP_NAV_TITLE_FONT_SIZE,

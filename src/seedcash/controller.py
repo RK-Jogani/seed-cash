@@ -369,9 +369,9 @@ class Controller(Singleton):
             ):
                 self.toast_notification_thread.stop()
 
-            # Clear the screen when exiting
-            logger.info("Clearing screen, exiting")
-            Renderer.get_instance().display_blank_screen()
+            # # Clear the screen when exiting
+            # logger.info("Clearing screen, exiting")
+            # Renderer.get_instance().display_blank_screen()
 
     @property
     def is_screensaver_running(self):
