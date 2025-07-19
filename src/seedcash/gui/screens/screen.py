@@ -658,9 +658,9 @@ class LargeButtonScreen(BaseScreen):
 
     def __post_init__(self):
         if not self.button_font_name:
-            self.button_font_name = GUIConstants.BUTTON_FONT_NAME
+            self.button_font_name = GUIConstants.get_button_font_name()
         if not self.button_font_size:
-            self.button_font_size = GUIConstants.BUTTON_FONT_SIZE + 2
+            self.button_font_size = GUIConstants.get_button_font_size() + 2
 
         super().__post_init__()
 
