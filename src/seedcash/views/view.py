@@ -184,8 +184,8 @@ class Destination:
 #
 #########################################################################################
 class MainMenuView(View):
-    LOAD_SEED = ButtonOption("Load seed", SeedCashIconsConstants.LOAD_SEED)
-    GENERATE_SEED = ButtonOption("Generate seed", SeedCashIconsConstants.GENERATE_SEED)
+    LOAD_SEED = ButtonOption("Load seed", SeedSignerIconConstants.SEEDS)
+    GENERATE_SEED = ButtonOption("Generate seed", SeedSignerIconConstants.SCAN)
 
     def run(self):
         from seedcash.gui.screens.screen import MainMenuScreen
