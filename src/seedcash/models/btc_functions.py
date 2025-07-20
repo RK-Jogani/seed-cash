@@ -3,7 +3,7 @@ import hmac
 import struct
 import base58
 from ecdsa import SECP256k1, SigningKey, VerifyingKey
-from ecdsa.util import number_to_string, string_to_number
+from helpers.ecdsa.utils import string_to_number, number_to_string
 from seedcash.gui.components import load_txt
 import logging
 
