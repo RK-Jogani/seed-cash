@@ -88,29 +88,29 @@ class SeedMnemonicEntryView(View):
         # ret will be our new mnemonic word
         self.controller.storage.update_mnemonic(ret, self.cur_word_index)
 
-        # if (
-        #     self.is_calc_final_word
-        #     and self.cur_word_index == self.controller.storage.mnemonic_length - 2
-        # ):
-        #     # Time to calculate the last word. User must decide how they want to specify
-        #     # the last bits of entropy for the final word.
-        #     from seedcash.views.generate_seed_view import (
-        #         ToolsCalcFinalWordCoinFlipsView,
-        #     )
+        if (
+            self.is_calc_final_word
+            and self.cur_word_index == self.controller.storage.mnemonic_length - 2
+        ):
+            # Time to calculate the last word. User must decide how they want to specify
+            # the last bits of entropy for the final word.
+            from seedcash.views.generate_seed_views import (
+                ToolsCalcFinalWordCoinFlipsView,
+            )
 
-        #     return Destination(ToolsCalcFinalWordCoinFlipsView)
+            return Destination(ToolsCalcFinalWordCoinFlipsView)
 
-        # if (
-        #     self.is_calc_final_word
-        #     and self.cur_word_index == self.controller.storage.mnemonic_length - 1
-        # ):
-        #     # Time to calculate the last word. User must either select a final word to
-        #     # contribute entropy to the checksum word OR we assume 0 ("abandon").
-        #     from seedcash.views.generate_seed_view import (
-        #         ToolsCalcFinalWordShowFinalWordView,
-        #     )
+        if (
+            self.is_calc_final_word
+            and self.cur_word_index == self.controller.storage.mnemonic_length - 1
+        ):
+            # Time to calculate the last word. User must either select a final word to
+            # contribute entropy to the checksum word OR we assume 0 ("abandon").
+            from seedcash.views.generate_seed_views import (
+                ToolsCalcFinalWordShowFinalWordView,
+            )
 
-        #     return Destination(ToolsCalcFinalWordShowFinalWordView)
+            return Destination(ToolsCalcFinalWordShowFinalWordView)
 
         if self.cur_word_index < (self.controller.storage.mnemonic_length - 1):
             return Destination(

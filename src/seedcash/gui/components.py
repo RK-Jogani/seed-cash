@@ -51,9 +51,12 @@ class BaseComponent:
 
 
 class GUIConstants:
+    PADDING = 8
     EDGE_PADDING = 8
     COMPONENT_PADDING = 8
     LIST_ITEM_PADDING = 4
+    NAVIGATION_BUTTON_SIZE = 32
+    TEXT_FONT_SIZE = 17
 
     BACKGROUND_COLOR = "#000000"
     INACTIVE_COLOR = "#414141"

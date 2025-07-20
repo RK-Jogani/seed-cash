@@ -66,6 +66,7 @@ class BackgroundImportThread(BaseThread):
         # Get MainMenuView ready to respond quickly
 
         time_import("seedcash.views.load_seed_views")
+        time_import("seedcash.views.generate_seed_views")
 
 
 class Controller(Singleton):

@@ -201,10 +201,10 @@ class MainMenuView(View):
 
             return Destination(SeedCashLoadSeedView)
 
-        # elif button_data[selected_menu_num] == self.GENERATE_SEED:
-        #     from seedcash.views.generate_seed_view import SeedCashGenerateSeedView
+        elif button_data[selected_menu_num] == self.GENERATE_SEED:
+            from seedcash.views.generate_seed_views import SeedCashGenerateSeedView
 
-        #     return Destination(SeedCashGenerateSeedView)
+            return Destination(SeedCashGenerateSeedView)
 
         elif button_data[selected_menu_num] == "Settings":
             return Destination(SettingsMenuView)
