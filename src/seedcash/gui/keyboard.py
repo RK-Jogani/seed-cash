@@ -30,7 +30,7 @@ class Keyboard:
     ENTER_RIGHT = "enter_right"
 
     REGULAR_KEY_FONT = "regular"
-    ICON_KEY_FONT = GUIConstants.ICON_FONT_NAME__SEEDSIGNER
+    ICON_KEY_FONT = GUIConstants.ICON_FONT_NAME__FONT_AWESOME
 
     KEY_BACKSPACE = {
         "code": "DEL",
@@ -225,7 +225,7 @@ class Keyboard:
 
         # Set up the rendering and state params
         self.active_keys = list(self.charset)
-        self.icon_key_font = Fonts.get_font(GUIConstants.ICON_FONT_NAME__SEEDSIGNER, 26)
+        self.icon_key_font = Fonts.get_font(GUIConstants.ICON_FONT_NAME__SEEDCASH, 26)
 
         # Fixed-width fonts will all have same height, ignoring below baseline (e.g. "Q" or "q")
         (left, top, right, bottom) = self.font.getbbox("X", anchor="ls")

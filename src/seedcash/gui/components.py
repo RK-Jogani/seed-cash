@@ -6,6 +6,7 @@ import math
 
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from dataclasses import dataclass
+from typing import List, Tuple
 
 from seedcash.gui.renderer import Renderer
 from seedcash.models.settings import Settings
@@ -56,7 +57,7 @@ class GUIConstants:
 
     BACKGROUND_COLOR = "#000000"
     INACTIVE_COLOR = "#414141"
-    ACCENT_COLOR = "#FF9F0A"  # Active Color
+    ACCENT_COLOR = "#0ac18e"  # Active Color
     WARNING_COLOR = "#FFD60A"
     DIRE_WARNING_COLOR = "#FF5700"
     ERROR_COLOR = "#FF1B0A"
@@ -68,7 +69,7 @@ class GUIConstants:
     GREEN_INDICATOR_COLOR = "#00FF00"
 
     ICON_FONT_NAME__FONT_AWESOME = "Font_Awesome_6_Free-Solid-900"
-    ICON_FONT_NAME__SEEDSIGNER = "seedsigner-icons"
+    ICON_FONT_NAME__SEEDCASH = "SeedCash"
     ICON_FONT_SIZE = 22
     ICON_INLINE_FONT_SIZE = 24
     ICON_LARGE_BUTTON_SIZE = 48
@@ -105,13 +106,29 @@ class GUIConstants:
 
 class SeedCashIconConstants:
     # Menu icons
-    SCAN = "\ue900"
-    SEEDS = "\ue901"
-    SETTINGS = "\ue902"
-    TOOLS = "\ue903"
+    GENERATE_SEED = "\ue001"
+    LOAD_SEED = "\ue002"
+    SETTINGS = "\ue003"
+    POWER = "\ue004"
 
-    # Utility icons
-    BACK = "\ue904"
+    # Messaging icons
+    SUCCESS = "\ue005"
+    ERROR = "\ue006"
+    INFO = "\ue007"
+    WARNING = "\ue008"
+
+    # Navigation icons
+    BACK = "\ue00a"
+    NEXT = "\ue00b"
+
+    # Input icons
+    DELETE = "\ue0b1"
+    SPACE = "\ue0b2"
+    DONE = "\ue0b3"
+
+    PAGE_UP = "\ue0a1"
+    PAGE_DOWN = "\ue0a2"
+
     CHECK = "\ue905"
     CHECKBOX = "\ue906"
     CHECKBOX_SELECTED = "\ue907"
@@ -120,17 +137,9 @@ class SeedCashIconConstants:
     CHEVRON_RIGHT = "\ue90a"
     CHEVRON_UP = "\ue90b"
     CLOSE = "\ue90c"
-    PAGE_DOWN = "\ue90d"
-    PAGE_UP = "\ue90e"
-    PLUS = "\ue90f"
-    POWER = "\ue910"
-    RESTART = "\ue911"
 
-    # Messaging icons
-    INFO = "\ue912"
-    SUCCESS = "\ue913"
-    WARNING = "\ue914"
-    ERROR = "\ue915"
+    PLUS = "\ue90f"
+    RESTART = "\ue911"
 
     # Informational icons
     ADDRESS = "\ue916"
@@ -141,19 +150,15 @@ class SeedCashIconConstants:
     PASSPHRASE = "\ue91b"
 
     # Misc icons
-    BITCOIN = "\ue91c"
-    BITCOIN_ALT = "\ue91d"
+    BITCASH = "\ue91c"
+    BITCASH_ALT = "\ue91d"
     BRIGHTNESS = "\ue91e"
     MICROSD = "\ue91f"
     QRCODE = "\ue920"
     SIGN = "\ue921"
 
-    # Input icons
-    DELETE = "\ue922"
-    SPACE = "\ue923"
-
     # Must be updated whenever new icons are added. See usage in `Icon` class below.
-    MIN_VALUE = SCAN
+    MIN_VALUE = LOAD_SEED
     MAX_VALUE = SPACE
 
 
@@ -171,10 +176,7 @@ class Fonts(Singleton):
         if font_name not in cls.fonts:
             cls.fonts[font_name] = {}
 
-        if font_name in [
-            GUIConstants.ICON_FONT_NAME__FONT_AWESOME,
-            GUIConstants.ICON_FONT_NAME__SEEDSIGNER,
-        ]:
+        if font_name in [GUIConstants.ICON_FONT_NAME__FONT_AWESOME]:
             file_extension = "otf"
 
         if size not in cls.fonts[font_name]:
@@ -197,7 +199,7 @@ class Fonts(Singleton):
 class Icon(BaseComponent):
     screen_x: int = 0
     screen_y: int = 0
-    icon_name: str = SeedCashIconConstants.BITCOIN_ALT
+    icon_name: str = SeedCashIconConstants.BITCASH_ALT
     icon_size: int = GUIConstants.ICON_FONT_SIZE
     icon_color: str = GUIConstants.BODY_FONT_COLOR
 
@@ -209,13 +211,13 @@ class Icon(BaseComponent):
             and self.icon_name <= SeedCashIconConstants.MAX_VALUE
         ):
             self.icon_font = Fonts.get_font(
-                GUIConstants.ICON_FONT_NAME__SEEDSIGNER,
+                GUIConstants.ICON_FONT_NAME__SEEDCASH,
                 self.icon_size,
-                file_extension="otf",
+                file_extension="ttf",
             )
         else:
             self.icon_font = Fonts.get_font(
-                GUIConstants.ICON_FONT_NAME__FONT_AWESOME, self.icon_size
+                GUIConstants.ICON_FONT_NAME__SEEDCASH, self.icon_size
             )
 
         # Set width/height based on exact pixels that are rendered
@@ -1462,3 +1464,12 @@ def load_image(image_name: str) -> Image.Image:
     )
     image = Image.open(image_url).convert("RGB")
     return image
+
+
+def load_txt(file_name: str) -> List[str]:
+    file_url = os.path.join(
+        pathlib.Path(__file__).parent.resolve(), "..", "resources", file_name
+    )
+    with open(file_url, "r") as file:
+        lines = [line.strip() for line in file if line.strip()]
+    return lines

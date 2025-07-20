@@ -2,12 +2,9 @@ import logging
 import time
 import traceback
 
-from embit.descriptor import Descriptor
-from embit.psbt import PSBT
 from PIL.Image import Image
 
 from seedcash.gui.toast import BaseToastOverlayManagerThread
-from seedcash.models.psbt_parser import PSBTParser
 from seedcash.models.seed import Seed
 from seedcash.models.seed_storage import SeedStorage
 from seedcash.models.settings import Settings
@@ -60,9 +57,6 @@ class BackgroundImportThread(BaseThread):
             import_module(module_name)
             # print(time.time() - last, module_name)
 
-        time_import("embit")
-        time_import("seedcash.helpers.embit_utils")
-
         # Do costly initializations
         time_import("seedcash.models.seed_storage")
         from seedcash.models.seed_storage import SeedStorage
@@ -70,13 +64,8 @@ class BackgroundImportThread(BaseThread):
         Controller.get_instance()._storage = SeedStorage()
 
         # Get MainMenuView ready to respond quickly
-        time_import("seedcash.views.scan_views")
 
-        time_import("seedcash.views.seed_views")
-
-        time_import("seedcash.views.tools_views")
-
-        time_import("seedcash.views.settings_views")
+        time_import("seedcash.views.load_seed_views")
 
 
 class Controller(Singleton):
@@ -106,15 +95,7 @@ class Controller(Singleton):
     )
     settings: Settings = None
 
-    # TODO: Refactor these flow-related attrs that survive across multiple Screens.
-    # TODO: Should all in-memory flow-related attrs get wiped on MainMenuView?
-    psbt: PSBT = None
-    psbt_seed: Seed = None
-    psbt_parser: PSBTParser = None
-
     unverified_address = None
-
-    multisig_wallet_descriptor: Descriptor = None
 
     image_entropy_preview_frames: list[Image] = None
     image_entropy_final_image: Image = None

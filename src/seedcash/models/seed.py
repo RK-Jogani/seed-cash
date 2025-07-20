@@ -1,14 +1,10 @@
 import logging
 import unicodedata
 import hashlib
-import hmac
 
-from binascii import hexlify
-from embit import bip39, bip32, bip85
-from embit.networks import NETWORKS
+# from seedcash.models.btc_functions import BitcoinFunctions as bf
 from typing import List
-
-from seedcash.models.settings import SettingsConstants
+from seedcash.gui.components import load_txt
 
 logger = logging.getLogger(__name__)
 
@@ -17,225 +13,137 @@ class InvalidSeedException(Exception):
     pass
 
 
-
 class Seed:
-    def __init__(self,
-                 mnemonic: List[str] = None,
-                 passphrase: str = "",
-                 wordlist_language_code: str = SettingsConstants.WORDLIST_LANGUAGE__ENGLISH) -> None:
-        self._wordlist_language_code = wordlist_language_code
+    def __init__(self, mnemonic: List[str] = None) -> None:
 
         if not mnemonic:
             raise Exception("Must initialize a Seed with a mnemonic List[str]")
-        self._mnemonic: List[str] = unicodedata.normalize("NFKD", " ".join(mnemonic).strip()).split()
 
+        # variables
+        self._mnemonic = mnemonic
         self._passphrase: str = ""
-        self.set_passphrase(passphrase, regenerate_seed=False)
+        self.xpriv: str = ""
+        self.xpub: str = ""
+        self.fingerprint: str = ""
 
-        self.seed_bytes: bytes = None
-        self._generate_seed()
+        self._validate_mnemonic()
 
-
+    # this method will be replace by seedcash
     @staticmethod
-    def get_wordlist(wordlist_language_code: str = SettingsConstants.WORDLIST_LANGUAGE__ENGLISH) -> List[str]:
-        # TODO: Support other BIP-39 wordlist languages!
-        if wordlist_language_code == SettingsConstants.WORDLIST_LANGUAGE__ENGLISH:
-            return bip39.WORDLIST
-        else:
-            raise Exception(f"Unrecognized wordlist_language_code {wordlist_language_code}")
+    def get_wordlist() -> List[str]:
+        # getting world list from resource/bip39.txt
+        list39 = load_txt("bip39.txt")
+        return list39
 
-
-    def _generate_seed(self):
+    def _validate_mnemonic(self):
         try:
-            self.seed_bytes = bip39.mnemonic_to_seed(self.mnemonic_str, password=self._passphrase, wordlist=self.wordlist)
+            list_index_bi = [
+                bin(self.wordlist.index(word))[2:].zfill(11) for word in self._mnemonic
+            ]
+
+            bin_mnemonic = "".join(list_index_bi)
+
+            # checksum
+            checksum = bin_mnemonic[-4:]
+
+            decimal_mnemonic = int(bin_mnemonic[:-4], 2)
+
+            n = len(bin_mnemonic)
+            hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 4) // 4)
+
+            if len(hexa_mnemonic) % 2 != 0:  # If the length is odd, add a leading zero
+                hexa_mnemonic = "0" + hexa_mnemonic
+
+            # Convert to bytes
+            # Convert the hexadecimal mnemonic to bytes
+            byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+            # Hash i conversio a binari
+            hash_object = hashlib.sha256()
+            hash_object.update(byte_mnemonic)
+            hexa_hashmnemonic = hash_object.hexdigest()
+            bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+            checksum_revised = bin_hashmnemonic[:4]
+
+            if not checksum == checksum_revised:
+                raise InvalidSeedException(repr(e))
+
         except Exception as e:
             logger.info(repr(e), exc_info=True)
             raise InvalidSeedException(repr(e))
 
+    def generate_seed(self) -> bytes:
+        pass
+        # hexa_seed = bf.seed_generator(self.mnemonic_str, self.passphrase)
+
+        # (
+        #     depth,
+        #     father_fingerprint,
+        #     child_index,
+        #     account_chain_code,
+        #     account_key,
+        #     account_public_key,
+        # ) = bf.derivation_m_44_145_0(hexa_seed)
+
+        # self.xpriv = bf.xpriv_encode(
+        #     depth, father_fingerprint, child_index, account_chain_code, account_key
+        # )
+
+        # self.xpub = bf.xpub_encode(
+        #     depth,
+        #     father_fingerprint,
+        #     child_index,
+        #     account_chain_code,
+        #     account_public_key,
+        # )
+
+        # self.fingerprint = bf.fingerprint_hex(hexa_seed)
 
     @property
     def mnemonic_str(self) -> str:
         return " ".join(self._mnemonic)
-    
 
     @property
     def mnemonic_list(self) -> List[str]:
         return self._mnemonic
 
-
-    @property 
+    @property
     def wordlist_language_code(self) -> str:
         return self._wordlist_language_code
-
 
     @property
     def mnemonic_display_str(self) -> str:
         return unicodedata.normalize("NFC", " ".join(self._mnemonic))
-    
 
     @property
     def mnemonic_display_list(self) -> List[str]:
         return unicodedata.normalize("NFC", " ".join(self._mnemonic)).split()
 
-
     @property
     def has_passphrase(self):
         return self._passphrase != ""
 
-
     @property
     def passphrase(self):
         return self._passphrase
-        
 
     @property
     def passphrase_display(self):
         return unicodedata.normalize("NFC", self._passphrase)
 
-
-    def set_passphrase(self, passphrase: str, regenerate_seed: bool = True):
-        if passphrase:
-            self._passphrase = unicodedata.normalize("NFKD", passphrase)
-        else:
-            # Passphrase must always have a string value, even if it's just the empty
-            # string.
-            self._passphrase = ""
-
-        if regenerate_seed:
-            # Regenerate the internal seed since passphrase changes the result
-            self._generate_seed()
-
+    def set_passphrase(self, passphrase: str):
+        self._passphrase = passphrase
 
     @property
     def wordlist(self) -> List[str]:
-        return Seed.get_wordlist(self.wordlist_language_code)
+        return Seed.get_wordlist()
 
+    def get_fingerprint(self) -> str:
+        return self.fingerprint
 
-    def set_wordlist_language_code(self, language_code: str):
-        # TODO: Support other BIP-39 wordlist languages!
-        raise Exception("Not yet implemented!")
-
-
-    @property
-    def script_override(self) -> str:
-        return None
-
-
-    def derivation_override(self, sig_type: str = SettingsConstants.SINGLE_SIG) -> str:
-        return None
-
-
-    def detect_version(self, derivation_path: str, network: str = SettingsConstants.MAINNET, sig_type: str = SettingsConstants.SINGLE_SIG) -> str:
-        embit_network = NETWORKS[SettingsConstants.map_network_to_embit(network)]
-        return bip32.detect_version(derivation_path, default="xpub", network=embit_network)
-
-
-    @property
-    def passphrase_label(self) -> str:
-        return SettingsConstants.LABEL__BIP39_PASSPHRASE
-
-
-    @property
-    def seedqr_supported(self) -> bool:
-        return True
-
-
-    @property
-    def bip85_supported(self) -> bool:
-        return True
-
-
-    def get_fingerprint(self, network: str = SettingsConstants.MAINNET) -> str:
-        root = bip32.HDKey.from_seed(self.seed_bytes, version=NETWORKS[SettingsConstants.map_network_to_embit(network)]["xprv"])
-        return hexlify(root.child(0).fingerprint).decode('utf-8')
-
-
-    def get_xpub(self, wallet_path: str = '/', network: str = SettingsConstants.MAINNET):
-        # Import here to avoid slow startup times; takes 1.35s to import the first time
-        from seedcash.helpers import embit_utils
-        return embit_utils.get_xpub(seed_bytes=self.seed_bytes, derivation_path=wallet_path, embit_network=SettingsConstants.map_network_to_embit(network))
-
-
-    def get_bip85_child_mnemonic(self, bip85_index: int, bip85_num_words: int, network: str = SettingsConstants.MAINNET):
-        """Derives the seed's nth BIP-85 child mnemonic"""
-        root = bip32.HDKey.from_seed(self.seed_bytes, version=NETWORKS[SettingsConstants.map_network_to_embit(network)]["xprv"])
-
-        # TODO: Support other BIP-39 wordlist languages!
-        return bip85.derive_mnemonic(root, bip85_num_words, bip85_index)
-        
-
-    ### override operators    
+    ### override operators
     def __eq__(self, other):
         if isinstance(other, Seed):
             return self.seed_bytes == other.seed_bytes
-        return False
-
-
-
-class ElectrumSeed(Seed):
-
-    def _generate_seed(self):
-        if len(self._mnemonic) != 12:
-            raise InvalidSeedException(f"Unsupported Electrum seed length: {len(self._mnemonic)}")
-
-        s = hmac.digest(b"Seed version", self.mnemonic_str.encode('utf8'), hashlib.sha512).hex()
-        prefix = s[0:3]
-
-        # only support Electrum Segwit version for now
-        if SettingsConstants.ELECTRUM_SEED_SEGWIT == prefix:
-            self.seed_bytes=hashlib.pbkdf2_hmac('sha512', self.mnemonic_str.encode('utf-8'), b'electrum' + self._passphrase.encode('utf-8'), iterations = SettingsConstants.ELECTRUM_PBKDF2_ROUNDS)
-
-        else:
-            raise InvalidSeedException(f"Unsupported Electrum seed format: {prefix}")
-
-
-    def set_passphrase(self, passphrase: str, regenerate_seed: bool = True):
-        if passphrase:
-            self._passphrase = ElectrumSeed.normalize_electrum_passphrase(passphrase)
-        else:
-            # Passphrase must always have a string value, even if it's just the empty
-            # string.
-            self._passphrase = ""
-
-        if regenerate_seed:
-            # Regenerate the internal seed since passphrase changes the result
-            self._generate_seed()
-
-
-    @staticmethod
-    def normalize_electrum_passphrase(passphrase : str) -> str:
-        passphrase = unicodedata.normalize('NFKD', passphrase)
-        # lower
-        passphrase = passphrase.lower()
-        # normalize whitespaces
-        passphrase = u' '.join(passphrase.split())
-        return passphrase
-
-
-    @property
-    def script_override(self) -> str:
-        return SettingsConstants.NATIVE_SEGWIT
-
-
-    def derivation_override(self, sig_type: str = SettingsConstants.SINGLE_SIG) -> str:
-        return "m/0h" if sig_type == SettingsConstants.SINGLE_SIG else "m/1h"
-
-
-    def detect_version(self, derivation_path: str, network: str = SettingsConstants.MAINNET, sig_type: str = SettingsConstants.SINGLE_SIG) -> str:
-        embit_network = NETWORKS[SettingsConstants.map_network_to_embit(network)]
-        return embit_network["zpub"] if sig_type == SettingsConstants.SINGLE_SIG else embit_network["Zpub"]
-
-
-    @property
-    def passphrase_label(self) -> str:
-        return SettingsConstants.LABEL__CUSTOM_EXTENSION
-
-
-    @property
-    def seedqr_supported(self) -> bool:
-        return False
-
-
-    @property
-    def bip85_supported(self) -> bool:
         return False

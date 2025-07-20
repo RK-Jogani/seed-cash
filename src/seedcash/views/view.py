@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from gettext import gettext as _
 from typing import Type
 
-from seedcash.helpers.l10n import mark_for_translation as _mft
 from seedcash.gui.components import SeedCashIconConstants
 from seedcash.gui.screens import RET_CODE__POWER_BUTTON, RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import (
@@ -179,8 +178,8 @@ class Destination:
 #
 #########################################################################################
 class MainMenuView(View):
-    LOAD_SEED = ButtonOption("Load seed", SeedCashIconConstants.SEEDS)
-    GENERATE_SEED = ButtonOption("Generate seed", SeedCashIconConstants.SCAN)
+    LOAD_SEED = ButtonOption("Load seed", SeedCashIconConstants.LOAD_SEED)
+    GENERATE_SEED = ButtonOption("Generate seed", SeedCashIconConstants.GENERATE_SEED)
 
     def run(self):
         from seedcash.gui.screens.screen import MainMenuScreen
@@ -197,20 +196,56 @@ class MainMenuView(View):
         button_data.append("Settings")
         button_data.append("Power Off")
 
-        # if button_data[selected_menu_num] == self.LOAD_SEED:
-        #     from seedcash.views.load_seed_views import SeedCashLoadSeedView
+        if button_data[selected_menu_num] == self.LOAD_SEED:
+            from seedcash.views.load_seed_views import SeedCashLoadSeedView
 
-        #     return Destination(SeedCashLoadSeedView)
+            return Destination(SeedCashLoadSeedView)
 
         # elif button_data[selected_menu_num] == self.GENERATE_SEED:
         #     from seedcash.views.generate_seed_view import SeedCashGenerateSeedView
 
         #     return Destination(SeedCashGenerateSeedView)
 
-        # elif button_data[selected_menu_num] == "Settings":
-        #     return Destination(SettingsMenuView)
+        elif button_data[selected_menu_num] == "Settings":
+            return Destination(SettingsMenuView)
 
-        # if button_data[selected_menu_num] == "Power Off":
-        #     return Destination(PowerOffView)
+        elif button_data[selected_menu_num] == "Power Off":
+            return Destination(PowerOffView)
 
         #     return Destination(SeedCashGenerateSeedView)
+
+
+class PowerOffView(View):
+    def run(self):
+        from seedcash.gui.screens.screen import PowerOffScreen
+
+        self.run_screen(PowerOffScreen)
+        return Destination(BackStackView)
+
+
+@dataclass
+class SettingsMenuView(View):
+    def run(self):
+        pass
+
+
+@dataclass
+class NotYetImplementedView(View):
+    """
+    Temporary View to use during dev.
+    """
+
+    text: str = "This is still on our to-do list!"
+
+    def run(self):
+        from seedcash.gui.screens.screen import WarningScreen
+
+        self.run_screen(
+            WarningScreen,
+            title=_("Work In Progress"),
+            status_headline=_("Not Yet Implemented"),
+            text=self.text,
+            button_data=[ButtonOption("Back to Main Menu")],
+        )
+
+        return Destination(MainMenuView)
