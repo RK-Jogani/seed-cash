@@ -2,9 +2,12 @@ import hashlib
 import hmac
 import struct
 import base58
-from ecdsa import SECP256k1, SigningKey, VerifyingKey
-from helpers.ecdsa.utils import string_to_number, number_to_string
+
+from seedcash.helpers.ecdsa.curves import SECP256k1
+from seedcash.helpers.ecdsa.keys import SigningKey, VerifyingKey
+from seedcash.helpers.ecdsa.util import string_to_number, number_to_string
 from seedcash.gui.components import load_txt
+
 import logging
 
 logger = logging.getLogger(__name__)
