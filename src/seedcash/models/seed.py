@@ -2,7 +2,7 @@ import logging
 import unicodedata
 import hashlib
 
-from seedcash.models.btc_functions import BitcoinFunctions as bf
+# from seedcash.models.btc_functions import BitcoinFunctions as bf
 from typing import List
 from seedcash.gui.components import load_txt
 
@@ -74,30 +74,31 @@ class Seed:
             raise InvalidSeedException(repr(e))
 
     def generate_seed(self) -> bytes:
-        hexa_seed = bf.seed_generator(self.mnemonic_str, self.passphrase)
+        pass
+        # hexa_seed = bf.seed_generator(self.mnemonic_str, self.passphrase)
 
-        (
-            depth,
-            father_fingerprint,
-            child_index,
-            account_chain_code,
-            account_key,
-            account_public_key,
-        ) = bf.derivation_m_44_145_0(hexa_seed)
+        # (
+        #     depth,
+        #     father_fingerprint,
+        #     child_index,
+        #     account_chain_code,
+        #     account_key,
+        #     account_public_key,
+        # ) = bf.derivation_m_44_145_0(hexa_seed)
 
-        self.xpriv = bf.xpriv_encode(
-            depth, father_fingerprint, child_index, account_chain_code, account_key
-        )
+        # self.xpriv = bf.xpriv_encode(
+        #     depth, father_fingerprint, child_index, account_chain_code, account_key
+        # )
 
-        self.xpub = bf.xpub_encode(
-            depth,
-            father_fingerprint,
-            child_index,
-            account_chain_code,
-            account_public_key,
-        )
+        # self.xpub = bf.xpub_encode(
+        #     depth,
+        #     father_fingerprint,
+        #     child_index,
+        #     account_chain_code,
+        #     account_public_key,
+        # )
 
-        self.fingerprint = bf.fingerprint_hex(hexa_seed)
+        # self.fingerprint = bf.fingerprint_hex(hexa_seed)
 
     @property
     def mnemonic_str(self) -> str:
