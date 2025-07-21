@@ -2,6 +2,7 @@ import logging
 
 from gettext import gettext as _
 
+# from seedcash.models.btc_functions import BitcoinFunctions as bf
 from seedcash.gui.components import SeedCashIconConstants
 from seedcash.gui.screens import RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import ButtonOption
@@ -81,8 +82,7 @@ class ToolsCalcFinalWordShowFinalWordView(View):
 
     def __init__(self, coin_flips: str = None):
         super().__init__()
-        # Construct the actual final word. The user's selected_final_word
-        # from seedcash.models.btc_functions import BitcoinFunctions as bf
+        # Construct the actual final word. The user's selected_final_word will be
 
         wordlist = Seed.get_wordlist()
         # Prep the user's selected word / coin flips and the actual final word for
