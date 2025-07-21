@@ -58,6 +58,7 @@ class BackgroundImportThread(BaseThread):
             # print(time.time() - last, module_name)
 
         # Do costly initializations
+        time_import("seedcash.models.btc_functions")
         time_import("seedcash.models.seed_storage")
         from seedcash.models.seed_storage import SeedStorage
 
