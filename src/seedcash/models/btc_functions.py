@@ -1,8 +1,8 @@
 import hashlib
 import hmac
 import struct
-import base58
 
+from seedcash.helpers.base58 import b58decode, b58encode
 from seedcash.helpers.ecdsa.curves import SECP256k1
 from seedcash.helpers.ecdsa.keys import SigningKey, VerifyingKey
 from seedcash.helpers.ecdsa.util import string_to_number, number_to_string
@@ -267,7 +267,7 @@ class BitcoinFunctions:
         )
         checksum = BitcoinFunctions.sha256(BitcoinFunctions.sha256(data))[:4]
 
-        return base58.b58encode(data + checksum).decode("utf-8")
+        return b58encode(data + checksum).decode("utf-8")
 
     @staticmethod
     def xpub_encode(
@@ -284,7 +284,7 @@ class BitcoinFunctions:
         )
         checksum = BitcoinFunctions.sha256(BitcoinFunctions.sha256(data))[:4]
 
-        return base58.b58encode(data + checksum).decode("utf-8")
+        return b58encode(data + checksum).decode("utf-8")
 
     @staticmethod
     def fingerprint_hex(hexa_seed):
@@ -315,7 +315,7 @@ class BitcoinFunctions:
     def xpub_decode(xpub):
         """De xpub en base 58 a components en bytes"""
 
-        xpub_bytes = base58.b58decode(xpub)
+        xpub_bytes = b58decode(xpub)
 
         version = xpub_bytes[:4]
         depth = xpub_bytes[4:5]
@@ -380,7 +380,7 @@ class BitcoinFunctions:
 
         # Create final address
         address_bytes = versioned_hash + checksum
-        bitcoin_address = base58.b58encode(address_bytes).decode("utf-8")
+        bitcoin_address = b58encode(address_bytes).decode("utf-8")
 
         return bitcoin_address
 
@@ -484,7 +484,7 @@ class BitcoinFunctions:
 
     @staticmethod
     def parse_xpriv(xpriv):
-        data = base58.b58decode(xpriv)
+        data = b58decode(xpriv)
 
         version = data[:4]
         depth = data[4:5]
@@ -537,7 +537,7 @@ class BitcoinFunctions:
         checksum = second_hash[:4]
 
         full_key = extended_key + checksum
-        wif = base58.b58encode(full_key)
+        wif = b58encode(full_key)
         return wif.decode("ascii")
 
     @staticmethod
