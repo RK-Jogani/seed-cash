@@ -2,7 +2,7 @@ import logging
 
 from gettext import gettext as _
 
-# from seedcash.models.btc_functions import BitcoinFunctions as bf
+from seedcash.models.btc_functions import BitcoinFunctions as bf
 from seedcash.gui.components import SeedCashIconConstants
 from seedcash.gui.screens import RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import ButtonOption
@@ -93,11 +93,9 @@ class ToolsCalcFinalWordShowFinalWordView(View):
 
         if coin_flips:
             # fill the last bits (what will eventually be the checksum) with zeros
-            # final_mnemonic = bf.get_mnemonic(
-            #     self.controller.storage._mnemonic[:-1], coin_flips
-            # )
-
-            final_mnemonic = self.controller.storage._mnemonic[:-1] + ["about"]
+            final_mnemonic = bf.get_mnemonic(
+                self.controller.storage._mnemonic[:-1], coin_flips
+            )
 
         # Update our pending mnemonic with the real final word
         self.controller.storage.update_mnemonic(final_mnemonic[-1], -1)
