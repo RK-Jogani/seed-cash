@@ -2,13 +2,21 @@ from dataclasses import dataclass
 from gettext import gettext as _
 from typing import Type
 
-from seedcash.gui.components import SeedCashIconConstants
+from seedcash.gui.components import (
+    SeedCashIconsConstants,
+)
 from seedcash.gui.screens import RET_CODE__POWER_BUTTON, RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import (
     BaseScreen,
     ButtonOption,
+    WarningScreen,
+    ErrorScreen,
 )
 from seedcash.models.settings import Settings
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BackStackView:
@@ -178,11 +186,16 @@ class Destination:
 #
 #########################################################################################
 class MainMenuView(View):
-    LOAD_SEED = ButtonOption("Load seed", SeedCashIconConstants.LOAD_SEED)
-    GENERATE_SEED = ButtonOption("Generate seed", SeedCashIconConstants.GENERATE_SEED)
+    LOAD_SEED = ButtonOption("Load seed", SeedCashIconsConstants.LOAD_SEED)
+    GENERATE_SEED = ButtonOption("Generate seed", SeedCashIconsConstants.GENERATE_SEED)
 
     def run(self):
         from seedcash.gui.screens.screen import MainMenuScreen
+
+        if self.controller.storage.seed:
+            from seedcash.views.load_seed_views import SeedOptionsView
+
+            return Destination(SeedOptionsView)
 
         button_data = [
             self.LOAD_SEED,
@@ -212,14 +225,14 @@ class MainMenuView(View):
         elif button_data[selected_menu_num] == "Power Off":
             return Destination(PowerOffView)
 
-        #     return Destination(SeedCashGenerateSeedView)
+            return Destination(SeedCashGenerateSeedView)
 
 
 class PowerOffView(View):
     def run(self):
-        from seedcash.gui.screens.screen import PowerOffScreen
+        from seedcash.gui.screens.screen import PowerOffNotRequiredScreen
 
-        self.run_screen(PowerOffScreen)
+        self.run_screen(PowerOffNotRequiredScreen)
         return Destination(BackStackView)
 
 
@@ -238,8 +251,6 @@ class NotYetImplementedView(View):
     text: str = "This is still on our to-do list!"
 
     def run(self):
-        from seedcash.gui.screens.screen import WarningScreen
-
         self.run_screen(
             WarningScreen,
             title=_("Work In Progress"),
@@ -249,3 +260,46 @@ class NotYetImplementedView(View):
         )
 
         return Destination(MainMenuView)
+
+
+@dataclass
+class ErrorView(View):
+    title: str = "Error"
+    show_back_button: bool = True
+    status_icon_name: str = SeedCashIconsConstants.ERROR
+    status_headline: str = None
+    text: str = None
+    button_text: str = None
+    next_destination: Destination = None
+
+    def run(self):
+        self.run_screen(
+            ErrorScreen,
+            title=self.title,
+            status_icon_name=self.status_icon_name,
+            status_headline=self.status_headline,
+            text=self.text,
+            button_data=[ButtonOption(self.button_text)],
+            show_back_button=self.show_back_button,
+        )
+        return (
+            self.next_destination
+            if self.next_destination
+            else Destination(MainMenuView, clear_history=True)
+        )
+
+
+@dataclass
+class UnhandledExceptionView(View):
+    error: list[str]
+
+    def run(self):
+        self.run_screen(
+            ErrorScreen,
+            title=_("System Error"),
+            status_headline=self.error[0],
+            text=self.error[1] + "\n" + self.error[2],
+            allow_text_overflow=True,  # Fit what we can, let the rest go off the edges
+        )
+
+        return Destination(MainMenuView, clear_history=True)

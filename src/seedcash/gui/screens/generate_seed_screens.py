@@ -9,9 +9,8 @@ from seedcash.gui.components import (
     Fonts,
     IconButton,
     IconTextLine,
-    SeedCashIconConstants,
+    SeedCashIconsConstants,
     TextArea,
-    GUIConstants,
     GUIConstants,
 )
 
@@ -44,36 +43,42 @@ class SeedCashGenerateSeedScreen(BaseScreen):
         self.selected_button = 0  # 0: NEXT, 1: BACK
 
         # Configure button layout
-        self.button_height = GUIConstants.NAVIGATION_BUTTON_SIZE
+        self.button_height = GUIConstants.TOP_NAV_BUTTON_SIZE
         min_button_width = 100
-        available_width = self.canvas_width - 3 * GUIConstants.PADDING
+        available_width = self.canvas_width - 3 * GUIConstants.COMPONENT_PADDING
         self.button_width = max(min_button_width, available_width // 3)
-        self.button_y = self.canvas_height - self.button_height - GUIConstants.PADDING
+        self.button_y = (
+            self.canvas_height - self.button_height - GUIConstants.COMPONENT_PADDING
+        )
 
         # Position buttons with a visual separator
         self.next_button_x = (
-            self.canvas_width - GUIConstants.PADDING - self.button_width
+            self.canvas_width - GUIConstants.COMPONENT_PADDING - self.button_width
         )
-        self.back_button_x = GUIConstants.PADDING
+        self.back_button_x = GUIConstants.COMPONENT_PADDING
 
         # Calculate step text positions
-        self.step1_y = 4 * GUIConstants.PADDING
+        self.step1_y = 4 * GUIConstants.COMPONENT_PADDING
         self.step2_y = (
-            self.step1_y + GUIConstants.PADDING + 2 * GUIConstants.TEXT_FONT_SIZE
+            self.step1_y
+            + GUIConstants.COMPONENT_PADDING
+            + 2 * GUIConstants.BODY_FONT_SIZE
         )
         self.step3_y = (
-            self.step2_y + GUIConstants.PADDING + 2 * GUIConstants.TEXT_FONT_SIZE
+            self.step2_y
+            + GUIConstants.COMPONENT_PADDING
+            + 2 * GUIConstants.BODY_FONT_SIZE
         )
 
         # Initialize text area
-        self.text_x = GUIConstants.PADDING
+        self.text_x = GUIConstants.COMPONENT_PADDING
 
         self.step1_text = TextArea(
             text=self.step1,
             screen_x=self.text_x,
             screen_y=self.step1_y,
-            width=self.canvas_width - 2 * GUIConstants.PADDING,
-            font_size=GUIConstants.TEXT_FONT_SIZE,
+            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
+            font_size=GUIConstants.BODY_FONT_SIZE,
             is_text_centered=True,
         )
 
@@ -81,8 +86,8 @@ class SeedCashGenerateSeedScreen(BaseScreen):
             text=self.stpe2,
             screen_x=self.text_x,
             screen_y=self.step2_y,
-            width=self.canvas_width - 2 * GUIConstants.PADDING,
-            font_size=GUIConstants.TEXT_FONT_SIZE,
+            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
+            font_size=GUIConstants.BODY_FONT_SIZE,
             is_text_centered=True,
         )
 
@@ -90,8 +95,8 @@ class SeedCashGenerateSeedScreen(BaseScreen):
             text=self.step3,
             screen_x=self.text_x,
             screen_y=self.step3_y,
-            width=self.canvas_width - 2 * GUIConstants.PADDING,
-            font_size=GUIConstants.TEXT_FONT_SIZE,
+            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
+            font_size=GUIConstants.BODY_FONT_SIZE,
             is_text_centered=True,
         )
 
@@ -114,12 +119,12 @@ class SeedCashGenerateSeedScreen(BaseScreen):
         # Draw BACK button
         is_back_selected = self.selected_button == 1
         back_btn = IconButton(
-            icon_name=SeedCashIconConstants.BACK,
+            icon_name=SeedCashIconsConstants.BACK,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=self.back_button_x,
             screen_y=self.button_y,
-            width=GUIConstants.NAVIGATION_BUTTON_SIZE,
-            height=GUIConstants.NAVIGATION_BUTTON_SIZE,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
             selected_color=(GUIConstants.ACCENT_COLOR if is_back_selected else None),
             is_selected=is_back_selected,
         )
@@ -129,14 +134,14 @@ class SeedCashGenerateSeedScreen(BaseScreen):
         # Draw NEXT button with emphasis
         is_next_selected = self.selected_button == 0
         next_btn = IconButton(
-            icon_name=SeedCashIconConstants.CHEVRON_RIGHT,
+            icon_name=SeedCashIconsConstants.CHEVRON_RIGHT,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=self.canvas_width
-            - GUIConstants.NAVIGATION_BUTTON_SIZE
-            - GUIConstants.PADDING,
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.COMPONENT_PADDING,
             screen_y=self.button_y,
-            width=GUIConstants.NAVIGATION_BUTTON_SIZE,
-            height=GUIConstants.NAVIGATION_BUTTON_SIZE,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
             selected_color=(GUIConstants.ACCENT_COLOR if is_next_selected else None),
             is_selected=is_next_selected,
         )
@@ -409,7 +414,7 @@ class ToolsCalcFinalWordDoneScreen(ButtonListScreen):
 
         self.components.append(
             IconTextLine(
-                icon_name=SeedCashIconConstants.FINGERPRINT,
+                icon_name=SeedCashIconsConstants.FINGERPRINT,
                 icon_color=GUIConstants.INFO_COLOR,
                 # TRANSLATOR_NOTE: a label for the shortened Key-id of a BIP-32 master HD wallet
                 label_text=_("fingerprint"),

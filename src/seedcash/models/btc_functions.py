@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import struct
 
-# from base58 import b58decode, b58encode
+from base58 import b58decode, b58encode
 
 from ecdsa import SECP256k1, SigningKey, VerifyingKey
 from ecdsa.util import string_to_number, number_to_string

@@ -1,11 +1,11 @@
+import math
 import logging
 import time
-import math
 
 from dataclasses import dataclass, field
 from gettext import gettext as _
-from typing import Any, List, Tuple
 from PIL import Image, ImageDraw, ImageColor
+from typing import Any, List, Tuple
 
 from seedcash.gui.components import (
     GUIConstants,
@@ -14,15 +14,14 @@ from seedcash.gui.components import (
     Icon,
     IconButton,
     LargeIconButton,
-    SeedCashIconConstants,
+    SeedCashIconsConstants,
     TopNav,
     TextArea,
     load_image,
 )
 from seedcash.gui.keyboard import Keyboard, TextEntryDisplay
 from seedcash.hardware.buttons import HardwareButtonsConstants, HardwareButtons
-from seedcash.models.settings import SettingsConstants
-from seedcash.models.threads import BaseThread, ThreadsafeCounter
+from seedcash.models.threads import BaseThread
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +143,7 @@ class LoadingScreenThread(BaseThread):
 
         renderer: Renderer = Renderer.get_instance()
 
-        center_image = load_image("btc_logo_60x60.png")
+        center_image = load_image("img/btc_logo_60x60.png")
         orbit_gap = 2 * GUIConstants.COMPONENT_PADDING
         bounding_box = (
             int((renderer.canvas_width - center_image.width) / 2 - orbit_gap),
@@ -170,7 +169,7 @@ class LoadingScreenThread(BaseThread):
             if self.text:
                 TextArea(
                     text=self.text,
-                    font_size=GUIConstants.get_top_nav_title_font_size(),
+                    font_size=GUIConstants.TOP_NAV_TITLE_FONT_SIZE,
                     screen_y=int((renderer.canvas_height - bounding_box[3]) / 2),
                 ).render()
 
@@ -205,195 +204,6 @@ class LoadingScreenThread(BaseThread):
 
                 renderer.show_image()
             position += arc_sweep
-
-
-@dataclass
-class ButtonOption:
-    """
-    Note: The babel config in setup.cfg will extract the `button_label` string for translation
-    """
-
-    button_label: str
-    icon_name: str = None
-    icon_color: str = None
-    right_icon_name: str = None
-    button_label_color: str = None
-    return_data: Any = None
-    active_button_label: str = (
-        None  # Changes displayed button label when button is active
-    )
-    font_name: str = None  # Optional override
-    font_size: int = None  # Optional override
-
-
-@dataclass
-class LargeButtonScreen(BaseScreen):
-    button_data: list = None
-    button_font_name: str = None
-    button_font_size: int = None
-    button_selected_color: str = GUIConstants.ACCENT_COLOR
-    selected_button: int = 0
-
-    def __post_init__(self):
-        if not self.button_font_name:
-            self.button_font_name = GUIConstants.BUTTON_FONT_NAME
-        if not self.button_font_size:
-            self.button_font_size = GUIConstants.BUTTON_FONT_SIZE + 2
-
-        super().__post_init__()
-
-        if not self.button_data:
-            raise Exception("button_data must be provided")
-
-        # Calculate available height for main buttons (excluding bottom power button)
-        num_main_buttons = len(self.button_data)
-        total_padding = (num_main_buttons - 1) * GUIConstants.COMPONENT_PADDING
-        max_button_height = (
-            self.canvas_height
-            - total_padding
-            - 2 * GUIConstants.EDGE_PADDING
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
-        ) // num_main_buttons
-        button_size = min(
-            self.canvas_width - 2 * GUIConstants.EDGE_PADDING, max_button_height
-        )
-
-        # Center the column of buttons
-        total_buttons_height = num_main_buttons * button_size + total_padding
-        button_start_y = (
-            self.canvas_height - GUIConstants.EDGE_PADDING - total_buttons_height
-        ) // 2
-        button_start_x = (self.canvas_width - button_size) // 2
-
-        self.buttons = []
-        for i, button_option in enumerate(self.button_data):
-            # Support both ButtonOption and dict for button_data
-            if isinstance(button_option, ButtonOption):
-                button_label = button_option.button_label
-                icon_name = button_option.icon_name
-            elif isinstance(button_option, dict):
-                button_label = button_option.get("button_label", "")
-                icon_name = button_option.get("icon_name", None)
-            else:
-                raise Exception("button_data must be ButtonOption or dict")
-
-            button_args = {
-                "text": _(button_label),
-                "screen_x": button_start_x,
-                "screen_y": button_start_y,
-                "width": button_size,
-                "height": button_size,
-                "is_text_centered": True,
-                "font_name": self.button_font_name,
-                "font_size": self.button_font_size,
-                "selected_color": self.button_selected_color,
-            }
-            if icon_name:
-                button_args["icon_name"] = icon_name
-                button_args["text_y_offset"] = (
-                    int(48 / 240 * self.renderer.canvas_height)
-                    + GUIConstants.COMPONENT_PADDING
-                )
-                button = LargeIconButton(**button_args)
-            else:
-                button = Button(**button_args)
-
-            self.buttons.append(button)
-            self.components.append(button)
-
-            # set the button as selected if it's the first one
-            if i == 0:
-                button.is_selected = True
-                self.selected_button = 0
-
-            button_start_y += button_size + GUIConstants.COMPONENT_PADDING
-
-        # Add the small setting button at the bottom left
-        self.settings_button = IconButton(
-            icon_name=SeedCashIconConstants.SETTINGS,
-            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
-            screen_x=GUIConstants.EDGE_PADDING,
-            screen_y=self.canvas_height
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
-            - GUIConstants.EDGE_PADDING,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-        )
-
-        self.buttons.append(self.settings_button)  # Now selectable
-        self.components.append(self.settings_button)
-
-        # Add the small power button at the bottom right as a selectable button
-        self.bottom_button = IconButton(
-            icon_name=SeedCashIconConstants.POWER,
-            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
-            screen_x=self.canvas_width
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
-            - GUIConstants.EDGE_PADDING,
-            screen_y=self.canvas_height
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
-            - GUIConstants.EDGE_PADDING,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-        )
-
-        self.buttons.append(self.bottom_button)  # Now selectable
-        self.components.append(self.bottom_button)
-
-    def _run(self):
-        def swap_selected_button(new_selected_button: int):
-            self.buttons[self.selected_button].is_selected = False
-            self.buttons[self.selected_button].render()
-            self.selected_button = new_selected_button
-            self.buttons[self.selected_button].is_selected = True
-            self.buttons[self.selected_button].render()
-
-        while True:
-            ret = self._run_callback()
-            if ret is not None:
-                return ret
-
-            user_input = self.hw_inputs.wait_for(
-                [
-                    HardwareButtonsConstants.KEY_UP,
-                    HardwareButtonsConstants.KEY_DOWN,
-                    HardwareButtonsConstants.KEY_LEFT,
-                    HardwareButtonsConstants.KEY_RIGHT,
-                ]
-                + HardwareButtonsConstants.KEYS__ANYCLICK
-            )
-
-            with self.renderer.lock:
-                if (
-                    user_input == HardwareButtonsConstants.KEY_UP
-                    or user_input == HardwareButtonsConstants.KEY_LEFT
-                ):
-                    # Navigation wraps through all buttons, including the power button at the bottom.
-                    if self.selected_button == 0:
-                        pass  # Already at top button
-                    else:
-                        swap_selected_button(self.selected_button - 1)
-
-                elif (
-                    user_input == HardwareButtonsConstants.KEY_DOWN
-                    or user_input == HardwareButtonsConstants.KEY_RIGHT
-                ):
-                    # After the last main button, next down selects the power button.
-                    if self.selected_button < len(self.buttons) - 1:
-                        swap_selected_button(self.selected_button + 1)
-
-                elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                    return self.selected_button
-
-                self.renderer.show_image()
-
-
-@dataclass
-class MainMenuScreen(LargeButtonScreen):
-    # Override LargeButtonScreen defaults
-    show_back_button: bool = False
-    show_power_button: bool = True
-    button_font_size: int = 16
 
 
 @dataclass
@@ -457,6 +267,25 @@ class BaseTopNavScreen(BaseScreen):
 
                 # Write the screen updates
                 self.renderer.show_image()
+
+
+@dataclass
+class ButtonOption:
+    """
+    Note: The babel config in setup.cfg will extract the `button_label` string for translation
+    """
+
+    button_label: str
+    icon_name: str = None
+    icon_color: str = None
+    right_icon_name: str = None
+    button_label_color: str = None
+    return_data: Any = None
+    active_button_label: str = (
+        None  # Changes displayed button label when button is active
+    )
+    font_name: str = None  # Optional override
+    font_size: int = None  # Optional override
 
 
 @dataclass
@@ -780,8 +609,170 @@ class ButtonListScreen(BaseScreen):
 
 
 @dataclass
+class LargeButtonScreen(BaseScreen):
+    button_data: list = None
+    button_font_name: str = None
+    button_font_size: int = None
+    button_selected_color: str = GUIConstants.ACCENT_COLOR
+    selected_button: int = 0
+
+    def __post_init__(self):
+        if not self.button_font_name:
+            self.button_font_name = GUIConstants.BUTTON_FONT_NAME
+        if not self.button_font_size:
+            self.button_font_size = GUIConstants.BUTTON_FONT_SIZE + 2
+
+        super().__post_init__()
+
+        if not self.button_data:
+            raise Exception("button_data must be provided")
+
+        # Calculate available height for main buttons (excluding bottom power button)
+        num_main_buttons = len(self.button_data)
+        total_padding = (num_main_buttons - 1) * GUIConstants.COMPONENT_PADDING
+        max_button_height = (
+            self.canvas_height
+            - total_padding
+            - 2 * GUIConstants.EDGE_PADDING
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+        ) // num_main_buttons
+        button_size = min(
+            self.canvas_width - 2 * GUIConstants.EDGE_PADDING, max_button_height
+        )
+
+        # Center the column of buttons
+        total_buttons_height = num_main_buttons * button_size + total_padding
+        button_start_y = (
+            self.canvas_height - GUIConstants.EDGE_PADDING - total_buttons_height
+        ) // 2
+        button_start_x = (self.canvas_width - button_size) // 2
+
+        self.buttons = []
+        for i, button_option in enumerate(self.button_data):
+            # Support both ButtonOption and dict for button_data
+            if isinstance(button_option, ButtonOption):
+                button_label = button_option.button_label
+                icon_name = button_option.icon_name
+            elif isinstance(button_option, dict):
+                button_label = button_option.get("button_label", "")
+                icon_name = button_option.get("icon_name", None)
+            else:
+                raise Exception("button_data must be ButtonOption or dict")
+
+            button_args = {
+                "text": _(button_label),
+                "screen_x": button_start_x,
+                "screen_y": button_start_y,
+                "width": button_size,
+                "height": button_size,
+                "is_text_centered": True,
+                "font_name": self.button_font_name,
+                "font_size": self.button_font_size,
+                "selected_color": self.button_selected_color,
+            }
+            if icon_name:
+                button_args["icon_name"] = icon_name
+                button_args["text_y_offset"] = (
+                    int(48 / 240 * self.renderer.canvas_height)
+                    + GUIConstants.COMPONENT_PADDING
+                )
+                button = LargeIconButton(**button_args)
+            else:
+                button = Button(**button_args)
+
+            self.buttons.append(button)
+            self.components.append(button)
+
+            # set the button as selected if it's the first one
+            if i == 0:
+                button.is_selected = True
+                self.selected_button = 0
+
+            button_start_y += button_size + GUIConstants.COMPONENT_PADDING
+
+        # Add the small setting button at the bottom left
+        self.settings_button = IconButton(
+            icon_name=SeedCashIconsConstants.SETTINGS,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+        )
+
+        self.buttons.append(self.settings_button)  # Now selectable
+        self.components.append(self.settings_button)
+
+        # Add the small power button at the bottom right as a selectable button
+        self.bottom_button = IconButton(
+            icon_name=SeedCashIconsConstants.POWER,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=self.canvas_width
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+        )
+
+        self.buttons.append(self.bottom_button)  # Now selectable
+        self.components.append(self.bottom_button)
+
+    def _run(self):
+        def swap_selected_button(new_selected_button: int):
+            self.buttons[self.selected_button].is_selected = False
+            self.buttons[self.selected_button].render()
+            self.selected_button = new_selected_button
+            self.buttons[self.selected_button].is_selected = True
+            self.buttons[self.selected_button].render()
+
+        while True:
+            ret = self._run_callback()
+            if ret is not None:
+                return ret
+
+            user_input = self.hw_inputs.wait_for(
+                [
+                    HardwareButtonsConstants.KEY_UP,
+                    HardwareButtonsConstants.KEY_DOWN,
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
+            )
+
+            with self.renderer.lock:
+                if (
+                    user_input == HardwareButtonsConstants.KEY_UP
+                    or user_input == HardwareButtonsConstants.KEY_LEFT
+                ):
+                    # Navigation wraps through all buttons, including the power button at the bottom.
+                    if self.selected_button == 0:
+                        pass  # Already at top button
+                    else:
+                        swap_selected_button(self.selected_button - 1)
+
+                elif (
+                    user_input == HardwareButtonsConstants.KEY_DOWN
+                    or user_input == HardwareButtonsConstants.KEY_RIGHT
+                ):
+                    # After the last main button, next down selects the power button.
+                    if self.selected_button < len(self.buttons) - 1:
+                        swap_selected_button(self.selected_button + 1)
+
+                elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                    return self.selected_button
+
+                self.renderer.show_image()
+
+
+@dataclass
 class LargeIconStatusScreen(ButtonListScreen):
-    status_icon_name: str = SeedCashIconConstants.SUCCESS
+    status_icon_name: str = SeedCashIconsConstants.SUCCESS
     status_icon_size: int = GUIConstants.ICON_PRIMARY_SCREEN_SIZE
     status_color: str = GUIConstants.SUCCESS_COLOR
     status_headline: str = None
@@ -918,7 +909,7 @@ class WarningScreen(WarningEdgesMixin, LargeIconStatusScreen, BaseTopNavScreen):
     """
 
     title: str = "Caution"
-    status_icon_name: str = SeedCashIconConstants.WARNING
+    status_icon_name: str = SeedCashIconsConstants.WARNING
     status_color: str = GUIConstants.WARNING_COLOR
     status_headline: str = "Privacy Leak!"  # The colored text under the alert icon
     button_data: list = field(default_factory=lambda: [ButtonOption("I Understand")])
@@ -942,8 +933,26 @@ class ErrorScreen(WarningScreen):
     """
 
     title: str = "Error"
-    status_icon_name: str = SeedCashIconConstants.ERROR
+    status_icon_name: str = SeedCashIconsConstants.ERROR
     status_color: str = GUIConstants.ERROR_COLOR
+
+
+@dataclass
+class ResetScreen(BaseTopNavScreen):
+    def __post_init__(self):
+        self.title = _("Restarting")
+        self.show_back_button = False
+        super().__post_init__()
+
+        self.components.append(
+            TextArea(
+                text=_(
+                    "SeedSigner is restarting.\n\nAll in-memory data will be wiped."
+                ),
+                screen_y=self.top_nav.height,
+                height=self.canvas_height - self.top_nav.height,
+            )
+        )
 
 
 @dataclass
@@ -956,6 +965,22 @@ class PowerOffScreen(BaseTopNavScreen):
         self.components.append(
             TextArea(
                 text=_("Please wait about 30 seconds before disconnecting power."),
+                screen_y=self.top_nav.height,
+                height=self.canvas_height - self.top_nav.height,
+            )
+        )
+
+
+@dataclass
+class PowerOffNotRequiredScreen(BaseTopNavScreen):
+    def __post_init__(self):
+        self.title = _("Just Unplug It")
+        self.show_back_button = True
+        super().__post_init__()
+
+        self.components.append(
+            TextArea(
+                text=_("It is safe to disconnect power at any time."),
                 screen_y=self.top_nav.height,
                 height=self.canvas_height - self.top_nav.height,
             )
@@ -1023,7 +1048,7 @@ class KeyboardScreen(BaseTopNavScreen):
 
             # Render the right button panel (only has a Key3 "Save" button)
             self.save_button = IconButton(
-                icon_name=SeedCashIconConstants.CHECK,
+                icon_name=SeedCashIconsConstants.CHECK,
                 icon_color=GUIConstants.SUCCESS_COLOR,
                 width=right_panel_buttons_width,
                 screen_x=hw_button_x,
@@ -1219,3 +1244,11 @@ class KeyboardScreen(BaseTopNavScreen):
             self.title = _("Roll {}".format(self.cursor_position + 1))
         """
         return False
+
+
+@dataclass
+class MainMenuScreen(LargeButtonScreen):
+    # Override LargeButtonScreen defaults
+    show_back_button: bool = False
+    show_power_button: bool = True
+    button_font_size: int = 16

@@ -2,7 +2,8 @@ import logging
 import random
 from binascii import hexlify
 from gettext import gettext as _
-from seedcash.gui.components import SeedCashIconConstants
+from seedcash.models.btc_functions import BitcoinFunctions as bf
+from seedcash.gui.components import SeedCashIconsConstants
 from seedcash.gui.screens import (
     RET_CODE__BACK_BUTTON,
     WarningScreen,
@@ -30,8 +31,8 @@ Seed Cash Updated Code
 
 # First Load Seed View
 class SeedCashLoadSeedView(View):
-    BACK = ButtonOption("BACK", SeedCashIconConstants.BACK)
-    NEXT = ButtonOption("NEXT", SeedCashIconConstants.NEXT)
+    BACK = ButtonOption("BACK", SeedCashIconsConstants.BACK)
+    NEXT = ButtonOption("NEXT", SeedCashIconsConstants.CHEVRON_RIGHT)
     label_text: str = (
         "Enter your mnemonic seed word by word and passphrase.\n Remember that Seedcash only supports 12 seed words."
     )
@@ -157,7 +158,7 @@ class SeedMnemonicInvalidView(View):
         selected_menu_num = self.run_screen(
             DireWarningScreen,
             title=_("Invalid Mnemonic!"),
-            status_icon_name=SeedCashIconConstants.ERROR,
+            status_icon_name=SeedCashIconsConstants.ERROR,
             status_headline=None,
             text=_("Checksum failure; not a valid seed phrase."),
             show_back_button=False,
@@ -412,14 +413,14 @@ class SeedGenerateAddressView(View):
 
         addr_type, addr_index = menu
 
-        # if addr_type == "legacy":
-        #     address = bf.xpub_to_legacy_address(self.xpub, addr_index)
-        #     return Destination(SeedGenerateLegacyView, view_args=dict(address=address))
-        # elif addr_type == "cashaddr":
-        #     address = bf.xpub_to_cashaddr_address(self.xpub, addr_index)
-        #     return Destination(
-        #         SeedGenerateCashAddrView, view_args=dict(address=address)
-        #     )
+        if addr_type == "legacy":
+            address = bf.xpub_to_legacy_address(self.xpub, addr_index)
+            return Destination(SeedGenerateLegacyView, view_args=dict(address=address))
+        elif addr_type == "cashaddr":
+            address = bf.xpub_to_cashaddr_address(self.xpub, addr_index)
+            return Destination(
+                SeedGenerateCashAddrView, view_args=dict(address=address)
+            )
 
 
 class SeedGenerateCashAddrView(View):

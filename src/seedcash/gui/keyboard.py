@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 from typing import Tuple
 from gettext import gettext as _
 
-from seedcash.gui.components import Fonts, GUIConstants, SeedCashIconConstants
+from seedcash.gui.components import Fonts, GUIConstants, SeedCashIconsConstants
 from seedcash.hardware.buttons import HardwareButtonsConstants
 
 
@@ -30,54 +30,54 @@ class Keyboard:
     ENTER_RIGHT = "enter_right"
 
     REGULAR_KEY_FONT = "regular"
-    ICON_KEY_FONT = GUIConstants.ICON_FONT_NAME__FONT_AWESOME
+    ICON_KEY_FONT = GUIConstants.ICON_FONT_NAME__SEEDCASH
 
     KEY_BACKSPACE = {
         "code": "DEL",
-        "letter": SeedCashIconConstants.DELETE,
+        "letter": SeedCashIconsConstants.DELETE,
         "font": ICON_KEY_FONT,
         "size": 2,
     }
 
     KEY_SPACE = {
         "code": "SPACE",
-        "letter": SeedCashIconConstants.SPACE,
+        "letter": SeedCashIconsConstants.SPACE,
         "font": ICON_KEY_FONT,
         "size": 1,
     }
     KEY_SPACE_2 = {
         "code": "SPACE",
-        "letter": SeedCashIconConstants.SPACE,
+        "letter": SeedCashIconsConstants.SPACE,
         "font": ICON_KEY_FONT,
         "size": 2,
     }
     KEY_SPACE_3 = {
         "code": "SPACE",
-        "letter": SeedCashIconConstants.SPACE,
+        "letter": SeedCashIconsConstants.SPACE,
         "font": ICON_KEY_FONT,
         "size": 3,
     }
     KEY_SPACE_4 = {
         "code": "SPACE",
-        "letter": SeedCashIconConstants.SPACE,
+        "letter": SeedCashIconsConstants.SPACE,
         "font": ICON_KEY_FONT,
         "size": 4,
     }
     KEY_SPACE_5 = {
         "code": "SPACE",
-        "letter": SeedCashIconConstants.SPACE,
+        "letter": SeedCashIconsConstants.SPACE,
         "font": ICON_KEY_FONT,
         "size": 5,
     }
     KEY_CURSOR_LEFT = {
         "code": "CURSOR_LEFT",
-        "letter": SeedCashIconConstants.CHEVRON_LEFT,
+        "letter": SeedCashIconsConstants.CHEVRON_LEFT,
         "font": ICON_KEY_FONT,
         "size": 1,
     }
     KEY_CURSOR_RIGHT = {
         "code": "CURSOR_RIGHT",
-        "letter": SeedCashIconConstants.CHEVRON_RIGHT,
+        "letter": SeedCashIconsConstants.CHEVRON_RIGHT,
         "font": ICON_KEY_FONT,
         "size": 1,
     }
@@ -232,7 +232,7 @@ class Keyboard:
         self.text_height = -1 * top
 
         (left, top, right, bottom) = self.icon_key_font.getbbox(
-            SeedCashIconConstants.DELETE + SeedCashIconConstants.SPACE, anchor="ls"
+            SeedCashIconsConstants.DELETE + SeedCashIconsConstants.SPACE, anchor="ls"
         )
         self.icon_key_height = -1 * top
 

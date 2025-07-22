@@ -11,10 +11,11 @@ import qrcode
 from seedcash.hardware.buttons import HardwareButtonsConstants
 from seedcash.gui.components import (
     Button,
+    FontAwesomeIconConstants,
     Fonts,
     IconButton,
     IconTextLine,
-    SeedCashIconConstants,
+    SeedCashIconsConstants,
     TextArea,
     GUIConstants,
 )
@@ -63,9 +64,7 @@ class SeedCashLoadSeedScreen(BaseScreen):
 
         # Position buttons with a visual separator
         self.next_button_x = (
-            self.canvas_width
-            - GUIConstants.EDGE_PADDING
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            self.canvas_width - GUIConstants.EDGE_PADDING - self.button_width
         )
         self.back_button_x = GUIConstants.EDGE_PADDING
 
@@ -130,7 +129,7 @@ class SeedCashLoadSeedScreen(BaseScreen):
         # Draw BACK button
         is_back_selected = self.selected_button == 1
         back_btn = IconButton(
-            icon_name=SeedCashIconConstants.BACK,
+            icon_name=SeedCashIconsConstants.BACK,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=self.back_button_x,
             screen_y=self.button_y,
@@ -145,10 +144,17 @@ class SeedCashLoadSeedScreen(BaseScreen):
         # Draw NEXT button with emphasis
         is_next_selected = self.selected_button == 0
         next_btn = IconButton(
-            icon_name=SeedCashIconConstants.NEXT,
+            icon_name=SeedCashIconsConstants.CHEVRON_RIGHT,
+            text=self.button_label,
+            is_text_centered=True,
+            is_icon_inline=True,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
-            screen_x=self.next_button_x,
-            screen_y=self.button_y,
+            screen_x=self.canvas_width
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
             width=GUIConstants.TOP_NAV_BUTTON_SIZE,
             height=GUIConstants.TOP_NAV_BUTTON_SIZE,
             selected_color=GUIConstants.ACCENT_COLOR if is_next_selected else None,
@@ -373,7 +379,7 @@ class SeedMnemonicEntryScreen(BaseTopNavScreen):
         arrow_button_width = GUIConstants.BUTTON_HEIGHT + GUIConstants.EDGE_PADDING
         arrow_button_height = int(0.75 * GUIConstants.BUTTON_HEIGHT)
         self.matches_list_up_button = IconButton(
-            icon_name=SeedCashIconConstants.PAGE_UP,
+            icon_name=FontAwesomeIconConstants.ANGLE_UP,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE + 2,
             is_text_centered=False,
             screen_x=self.canvas_width
@@ -387,7 +393,7 @@ class SeedMnemonicEntryScreen(BaseTopNavScreen):
         )
 
         self.matches_list_down_button = IconButton(
-            icon_name=SeedCashIconConstants.PAGE_DOWN,
+            icon_name=FontAwesomeIconConstants.ANGLE_DOWN,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE + 2,
             is_text_centered=False,
             screen_x=self.canvas_width
@@ -733,7 +739,7 @@ class SeedFinalizeScreen(ButtonListScreen):
         super().__post_init__()
 
         self.fingerprint_icontl = IconTextLine(
-            icon_name=SeedCashIconConstants.FINGERPRINT,
+            icon_name=SeedCashIconsConstants.FINGERPRINT,
             icon_color=GUIConstants.INFO_COLOR,
             icon_size=GUIConstants.ICON_FONT_SIZE + 12,
             label_text=_("fingerprint"),
@@ -758,7 +764,7 @@ class SeedOptionsScreen(ButtonListScreen):
             text=self.fingerprint,
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=GUIConstants.EDGE_PADDING,
-            icon_name=SeedCashIconConstants.FINGERPRINT,
+            icon_name=SeedCashIconsConstants.FINGERPRINT,
             icon_size=GUIConstants.ICON_FONT_SIZE + 12,
             is_text_centered=True,
             is_icon_inline=True,
@@ -954,7 +960,7 @@ class SeedExportXpubDetailsScreen(WarningEdgesMixin, ButtonListScreen):
 
         # Set up the fingerprint and passphrase displays
         self.fingerprint_line = IconTextLine(
-            icon_name=SeedCashIconConstants.FINGERPRINT,
+            icon_name=SeedCashIconsConstants.FINGERPRINT,
             icon_color=GUIConstants.INFO_COLOR,
             # TRANSLATOR_NOTE: Short for "BIP32 Master Fingerprint"
             label_text=_("Fingerprint"),
@@ -965,7 +971,7 @@ class SeedExportXpubDetailsScreen(WarningEdgesMixin, ButtonListScreen):
         self.components.append(self.fingerprint_line)
 
         self.derivation_line = IconTextLine(
-            icon_name=SeedCashIconConstants.DERIVATION,
+            icon_name=SeedCashIconsConstants.DERIVATION,
             icon_color=GUIConstants.INFO_COLOR,
             # TRANSLATOR_NOTE: Short for "Derivation Path"
             label_text=_("Derivation"),
@@ -994,7 +1000,7 @@ class SeedExportXpubDetailsScreen(WarningEdgesMixin, ButtonListScreen):
         )  # ellipsis
 
         self.xpub_line = IconTextLine(
-            icon_name=SeedCashIconConstants.X,
+            icon_name=FontAwesomeIconConstants.X,
             icon_color=GUIConstants.INFO_COLOR,
             label_text=_("Xpub"),
             value_text=f"{self.xpub[:num_chars]}...",
@@ -1208,7 +1214,7 @@ class SeedAddPassphraseScreen(BaseTopNavScreen):
         )
 
         self.hw_button3 = IconButton(
-            icon_name=SeedCashIconConstants.CHECK,
+            icon_name=SeedCashIconsConstants.CHECK,
             icon_color=GUIConstants.SUCCESS_COLOR,
             width=self.right_panel_buttons_width,
             screen_x=hw_button_x,
@@ -1494,7 +1500,7 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
 
         self.components.append(
             IconTextLine(
-                icon_name=SeedCashIconConstants.FINGERPRINT,
+                icon_name=SeedCashIconsConstants.FINGERPRINT,
                 icon_color=GUIConstants.INFO_COLOR,
                 # TRANSLATOR_NOTE: Describes the effect of applying a BIP-39 passphrase; it changes the seed's fingerprint
                 label_text=_("changes fingerprint"),
@@ -1573,7 +1579,7 @@ class QRCodeScreen(WarningEdgesMixin, ButtonListScreen):
 
     def __post_init__(self):
 
-        back_button = ButtonOption(_("Back"), SeedCashIconConstants.BACK)
+        back_button = ButtonOption(_("Back"), SeedCashIconsConstants.BACK)
 
         self.button_data = [back_button]
         self.is_bottom_list = True
@@ -1726,7 +1732,7 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
         )
 
         self.hw_button3 = IconButton(
-            icon_name=SeedCashIconConstants.CHECK,
+            icon_name=SeedCashIconsConstants.CHECK,
             icon_color=GUIConstants.SUCCESS_COLOR,
             width=self.right_panel_buttons_width,
             screen_x=hw_button_x,
@@ -1738,7 +1744,7 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
 
         self.hw_button4 = IconButton(
             text=_("Back"),
-            icon_name=SeedCashIconConstants.BACK,
+            icon_name=SeedCashIconsConstants.BACK,
             icon_color=GUIConstants.REGTEST_COLOR,
             width=self.right_panel_buttons_width,
             screen_x=GUIConstants.COMPONENT_PADDING,
