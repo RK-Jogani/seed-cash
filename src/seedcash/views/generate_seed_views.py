@@ -22,34 +22,62 @@ Seed Cash Updated Code
 
 # First Generate Seed View
 class SeedCashGenerateSeedView(View):
-    BACK = ButtonOption("BACK", SeedCashIconsConstants.BACK)
-    NEXT = ButtonOption("NEXT", SeedCashIconsConstants.CHEVRON_RIGHT)
-    label_text: str = (
-        "Enter your mnemonic seed word by word and passphrase.\n Remember that Seedcash only supports 12 seed words."
-    )
+    RANDOM_SEED = ButtonOption("Random Seed")
+    TWELVE_WORDS_SEED = ButtonOption("Calculate 12 Words Seed")
 
     def run(self):
         from seedcash.gui.screens.generate_seed_screens import (
             SeedCashGenerateSeedScreen,
         )
 
-        button_data = [self.NEXT, self.BACK]
+        button_data = [self.RANDOM_SEED, self.TWELVE_WORDS_SEED]
 
         selected_menu_num = self.run_screen(
             SeedCashGenerateSeedScreen,
+            title="Generate Seed",
+            button_data=button_data,
         )
 
-        if button_data[selected_menu_num] == self.BACK:
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
 
-        if button_data[selected_menu_num] == self.NEXT:
+        if button_data[selected_menu_num] == self.TWELVE_WORDS_SEED:
             from seedcash.views.load_seed_views import SeedMnemonicEntryView
 
             return Destination(
                 SeedMnemonicEntryView, view_args=dict(is_calc_final_word=True)
             )
+        elif button_data[selected_menu_num] == self.RANDOM_SEED:
+
+            return Destination(SeedCashGenerateSeedRandomView)
 
         return Destination(BackStackView)
+
+
+class SeedCashGenerateSeedRandomView(View):
+    def run(self):
+        # Generate a random mnemonic
+        mnemonic = bf.generate_random_seed()
+
+        from seedcash.gui.screens.load_seed_screens import SeedCashSeedWordsScreen
+
+        confirm = self.run_screen(
+            SeedCashSeedWordsScreen,
+            seed_words=mnemonic,
+        )
+
+        if confirm == RET_CODE__BACK_BUTTON:
+            # If the user goes back, discard the mnemonic
+            self.controller.storage.discard_mnemonic()
+            return Destination(BackStackView)
+        else:
+            # Convert the mnemonic to a seed
+            self.controller.storage._mnemonic = mnemonic
+            self.controller.storage.convert_mnemonic_to_seed()
+
+            from seedcash.views.load_seed_views import SeedFinalizeView
+
+            return Destination(SeedFinalizeView)
 
 
 class ToolsCalcFinalWordCoinFlipsView(View):
@@ -58,10 +86,7 @@ class ToolsCalcFinalWordCoinFlipsView(View):
 
         mnemonic_length = len(self.controller.storage._mnemonic)
 
-        if mnemonic_length == 12:
-            total_flips = 7
-        else:
-            total_flips = 3
+        total_flips = 7
 
         ret_val = ToolsCoinFlipEntryScreen(
             return_after_n_chars=total_flips,

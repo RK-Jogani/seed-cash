@@ -79,6 +79,9 @@ class SeedMnemonicEntryView(View):
 
         if ret == RET_CODE__BACK_BUTTON:
             if self.cur_word_index > 0:
+                # If we are not at the first word, we can go back to the previous word
+                # removing the previous word from the storage.
+                self.controller.storage._mnemonic[self.cur_word_index - 1] = None
                 return Destination(BackStackView)
             else:
                 self.controller.storage.discard_mnemonic()

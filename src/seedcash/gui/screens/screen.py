@@ -338,9 +338,7 @@ class ButtonListScreen(BaseScreen):
             )
         elif self.is_top_nav:
             # Center buttons vertically below the top nav
-            button_list_y = (
-                GUIConstants.TOP_NAV_HEIGHT
-            )
+            button_list_y = GUIConstants.TOP_NAV_HEIGHT
         else:
             # Center buttons vertically by default
             button_list_y = GUIConstants.EDGE_PADDING
@@ -952,9 +950,7 @@ class ResetScreen(BaseTopNavScreen):
 
         self.components.append(
             TextArea(
-                text=_(
-                    "SeedSigner is restarting.\n\nAll in-memory data will be wiped."
-                ),
+                text=_("SeedCash is restarting.\n\nAll in-memory data will be wiped."),
                 screen_y=self.top_nav.height,
                 height=self.canvas_height - self.top_nav.height,
             )

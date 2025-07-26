@@ -15,7 +15,6 @@ from seedcash.gui.components import (
 )
 
 from seedcash.hardware.camera import Camera
-from seedcash.models import visual_hash as vh
 from seedcash.hardware.buttons import HardwareButtonsConstants
 from .screen import RET_CODE__BACK_BUTTON, ButtonListScreen, BaseTopNavScreen
 

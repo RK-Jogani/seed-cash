@@ -7,17 +7,16 @@ from gettext import gettext as _
 from seedcash.hardware.buttons import HardwareButtonsConstants
 from seedcash.gui.components import (
     Fonts,
-    IconButton,
     IconTextLine,
-    SeedCashIconsConstants,
     TextArea,
     GUIConstants,
+    Button,
 )
 from seedcash.models import visual_hash as vh
 
 from .screen import (
     RET_CODE__BACK_BUTTON,
-    BaseScreen,
+    BaseTopNavScreen,
     ButtonListScreen,
     KeyboardScreen,
 )
@@ -33,151 +32,133 @@ Seed Cash Screens
 # SeedCashLoadSeedScreen is used to load a seed in the Seed Cash flow.
 # Reminder Screen
 @dataclass
-class SeedCashGenerateSeedScreen(BaseScreen):
-    step1: str = _("Step 1: Read carefully seedcash.com/explication")
-    stpe2: str = _("Step 2: Considering the explanation, generate your entropy")
-    step3: str = _("Step 3: Do the checksum")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.selected_button = 0  # 0: NEXT, 1: BACK
-
-        # Configure button layout
-        self.button_height = GUIConstants.TOP_NAV_BUTTON_SIZE
-        min_button_width = 100
-        available_width = self.canvas_width - 3 * GUIConstants.COMPONENT_PADDING
-        self.button_width = max(min_button_width, available_width // 3)
-        self.button_y = (
-            self.canvas_height - self.button_height - GUIConstants.COMPONENT_PADDING
-        )
-
-        # Position buttons with a visual separator
-        self.next_button_x = (
-            self.canvas_width - GUIConstants.COMPONENT_PADDING - self.button_width
-        )
-        self.back_button_x = GUIConstants.COMPONENT_PADDING
-
-        # Calculate step text positions
-        self.step1_y = 4 * GUIConstants.COMPONENT_PADDING
-        self.step2_y = (
-            self.step1_y
-            + GUIConstants.COMPONENT_PADDING
-            + 2 * GUIConstants.BODY_FONT_SIZE
-        )
-        self.step3_y = (
-            self.step2_y
-            + GUIConstants.COMPONENT_PADDING
-            + 2 * GUIConstants.BODY_FONT_SIZE
-        )
-
-        # Initialize text area
-        self.text_x = GUIConstants.COMPONENT_PADDING
-
-        self.step1_text = TextArea(
-            text=self.step1,
-            screen_x=self.text_x,
-            screen_y=self.step1_y,
-            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
-            font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
-        )
-
-        self.step2_text = TextArea(
-            text=self.stpe2,
-            screen_x=self.text_x,
-            screen_y=self.step2_y,
-            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
-            font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
-        )
-
-        self.step3_text = TextArea(
-            text=self.step3,
-            screen_x=self.text_x,
-            screen_y=self.step3_y,
-            width=self.canvas_width - 2 * GUIConstants.COMPONENT_PADDING,
-            font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
-        )
-
-        self.components.append(self.step1_text)
-        self.components.append(self.step2_text)
-        self.components.append(self.step3_text)
-
-    def draw_buttons(self):
-        # Draw visual separator between buttons
-        separator_x = self.canvas_width // 2
-        self.image_draw.line(
-            [
-                (separator_x, self.button_y),
-                (separator_x, self.button_y + self.button_height),
-            ],
-            fill=GUIConstants.BACKGROUND_COLOR,
-            width=2,
-        )
-
-        # Draw BACK button
-        is_back_selected = self.selected_button == 1
-        back_btn = IconButton(
-            icon_name=SeedCashIconsConstants.BACK,
-            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
-            screen_x=self.back_button_x,
-            screen_y=self.button_y,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            selected_color=(GUIConstants.ACCENT_COLOR if is_back_selected else None),
-            is_selected=is_back_selected,
-        )
-
-        back_btn.render()
-
-        # Draw NEXT button with emphasis
-        is_next_selected = self.selected_button == 0
-        next_btn = IconButton(
-            icon_name=SeedCashIconsConstants.CHEVRON_RIGHT,
-            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
-            screen_x=self.canvas_width
-            - GUIConstants.TOP_NAV_BUTTON_SIZE
-            - GUIConstants.COMPONENT_PADDING,
-            screen_y=self.button_y,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            selected_color=(GUIConstants.ACCENT_COLOR if is_next_selected else None),
-            is_selected=is_next_selected,
-        )
-        next_btn.render()
+class SeedCashGenerateSeedScreen(ButtonListScreen, BaseTopNavScreen):
+    def __post_init__(self):
+        self.is_button_text_centered = False
+        self.is_top_nav = True
+        self.show_back_button = True
+        super().__post_init__()
 
     def _run(self):
-        from time import time
-
-        last_interaction = time()
-        INACTIVITY_TIMEOUT = 300  # 5 minutes
-
         while True:
-            current_time = time()
-            if current_time - last_interaction > INACTIVITY_TIMEOUT:
-                return -1  # Timeout
-
-            self.draw_buttons()
-            self.renderer.show_image()
+            ret = self._run_callback()
+            if ret is not None:
+                logging.info("Exiting ButtonListScreen due to _run_callback")
+                return ret
 
             user_input = self.hw_inputs.wait_for(
-                [HardwareButtonsConstants.KEY_LEFT, HardwareButtonsConstants.KEY_RIGHT]
-                + HardwareButtonsConstants.KEYS__ANYCLICK,
+                [
+                    HardwareButtonsConstants.KEY_UP,
+                    HardwareButtonsConstants.KEY_DOWN,
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
             )
 
-            if not user_input:
-                continue
+            with self.renderer.lock:
+                if not self.top_nav.is_selected and (
+                    user_input == HardwareButtonsConstants.KEY_LEFT
+                    or (
+                        user_input == HardwareButtonsConstants.KEY_UP
+                        and self.selected_button == 0
+                    )
+                ):
+                    # SHORTCUT to escape long menu screens!
+                    # OR keyed UP from the top of the list.
+                    # Move selection up to top_nav
+                    # Only move navigation up there if there's something to select
+                    if self.top_nav.show_back_button or self.top_nav.show_power_button:
+                        self.buttons[self.selected_button].is_selected = False
+                        self.buttons[self.selected_button].render()
 
-            last_interaction = time()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
 
-            if user_input == HardwareButtonsConstants.KEY_LEFT:
-                self.selected_button = 1
-            elif user_input == HardwareButtonsConstants.KEY_RIGHT:
-                self.selected_button = 0
-            elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                return self.selected_button
+                elif user_input == HardwareButtonsConstants.KEY_UP:
+                    if self.top_nav.is_selected:
+                        # Can't go up any further
+                        pass
+                    else:
+                        cur_selected_button: Button = self.buttons[self.selected_button]
+                        self.selected_button -= 1
+                        next_selected_button: Button = self.buttons[
+                            self.selected_button
+                        ]
+                        cur_selected_button.is_selected = False
+                        next_selected_button.is_selected = True
+                        if (
+                            self.has_scroll_arrows
+                            and next_selected_button.screen_y
+                            - next_selected_button.scroll_y
+                            + next_selected_button.height
+                            < self.top_nav.height
+                        ):
+                            # Selected a Button that's off the top of the screen
+                            frame_scroll = (
+                                cur_selected_button.screen_y
+                                - next_selected_button.screen_y
+                            )
+                            for button in self.buttons:
+                                button.scroll_y -= frame_scroll
+                            self._render_visible_buttons()
+                        else:
+                            cur_selected_button.render()
+                            next_selected_button.render()
+
+                elif user_input == HardwareButtonsConstants.KEY_DOWN or (
+                    self.top_nav.is_selected
+                    and user_input == HardwareButtonsConstants.KEY_RIGHT
+                ):
+                    if self.selected_button == len(self.buttons) - 1:
+                        # Already at the bottom of the list. Nowhere to go. But may need
+                        # to re-render if we're returning from top_nav; otherwise skip
+                        # this update loop.
+                        if not self.top_nav.is_selected:
+                            continue
+
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+
+                        cur_selected_button = None
+                        next_selected_button = self.buttons[self.selected_button]
+                        next_selected_button.is_selected = True
+
+                    else:
+                        cur_selected_button: Button = self.buttons[self.selected_button]
+                        self.selected_button += 1
+                        next_selected_button: Button = self.buttons[
+                            self.selected_button
+                        ]
+                        cur_selected_button.is_selected = False
+                        next_selected_button.is_selected = True
+
+                    if self.has_scroll_arrows and (
+                        next_selected_button.screen_y
+                        - next_selected_button.scroll_y
+                        + next_selected_button.height
+                        > self.down_arrow_img_y
+                    ):
+                        # Selected a Button that's off the bottom of the screen
+                        frame_scroll = (
+                            next_selected_button.screen_y - cur_selected_button.screen_y
+                        )
+                        for button in self.buttons:
+                            button.scroll_y += frame_scroll
+                        self._render_visible_buttons()
+                    else:
+                        if cur_selected_button:
+                            cur_selected_button.render()
+                        next_selected_button.render()
+
+                elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                    if self.top_nav.is_selected:
+                        return self.top_nav.selected_button
+                    return self.selected_button
+
+                # Write the screen updates
+                self.renderer.show_image()
 
 
 @dataclass

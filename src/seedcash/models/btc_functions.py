@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-import struct
+import os
 
 from base58 import b58decode, b58encode
 
@@ -461,109 +461,39 @@ class BitcoinFunctions:
         )
         return address
 
-    # Sign tx
     @staticmethod
-    def inputs_count(raw_tx):
-        raw_tx_bytes = bytes.fromhex(raw_tx)
-        version = struct.unpack("<I", raw_tx_bytes[:4])[0]
-        offset = 4
-        first_byte = raw_tx_bytes[offset]
-        if first_byte < 0xFD:
-            num_inputs = first_byte
-            offset += 1
-        elif first_byte == 0xFD:
-            num_inputs = struct.unpack("<H", raw_tx_bytes[offset + 1 : offset + 3])[0]
-            offset += 3
-        elif first_byte == 0xFE:
-            num_inputs = struct.unpack("<I", raw_tx_bytes[offset + 1 : offset + 5])[0]
-            offset += 5
-        else:
-            num_inputs = struct.unpack("<Q", raw_tx_bytes[offset + 1 : offset + 9])[0]
-            offset += 9
-        return num_inputs
+    def generate_random_seed():
+        """
+        Generate a random 12-word BIP39 mnemonic seed using OS random bits.
 
-    @staticmethod
-    def parse_xpriv(xpriv):
-        data = b58decode(xpriv)
+        Returns:
+            list: List of 12 mnemonic words
+        """
+        # Generate 128 bits (16 bytes) of entropy for 12-word seed
+        entropy_bits = 128
+        entropy_bytes_count = entropy_bits // 8  # 16 bytes
 
-        version = data[:4]
-        depth = data[4:5]
-        parent_fingerprint = data[5:9]
-        child_number = data[9:13]
-        chain_code = data[13:45]
-        private_key = data[46:78]
+        # Generate random entropy using os.urandom (cryptographically secure)
+        entropy_bytes = os.urandom(entropy_bytes_count)
 
-        return version, depth, parent_fingerprint, child_number, chain_code, private_key
+        # Convert bytes to binary string
+        entropy_binary = "".join(format(byte, "08b") for byte in entropy_bytes)
 
-    @staticmethod
-    def ckd_privatekey(parent_key_bytes, parent_chain_code_bytes, index):
-        # Asumimos que index < 2^31 (no es una clave endurecida)
+        # Calculate SHA256 hash for checksum
+        hash_object = hashlib.sha256()
+        hash_object.update(entropy_bytes)
+        hash_hex = hash_object.hexdigest()
+        hash_binary = bin(int(hash_hex, 16))[2:].zfill(256)
 
-        # Convertir la clave privada a un punto público
-        parent_public_key = SigningKey.from_string(
-            parent_key_bytes, curve=SECP256k1
-        ).get_verifying_key()
-        parent_public_key_bytes = parent_public_key.to_string("compressed")
+        # Get first 4 bits as checksum for 12-word seed
+        checksum = hash_binary[:4]
 
-        # Calcular I = HMAC-SHA512(Key = cpar, Data = serP(point(kpar)) || ser32(i))
-        data = parent_public_key_bytes + struct.pack(">I", index)
-        I = hmac.new(parent_chain_code_bytes, data, hashlib.sha512).digest()
+        # Combine entropy and checksum (128 + 4 = 132 bits total)
+        full_binary = entropy_binary + checksum
 
-        IL, IR = I[:32], I[32:]
+        # Convert to mnemonic words using existing function
+        mnemonic = BitcoinFunctions.binmnemonic_to_mnemonic(full_binary)
 
-        # ki = parse256(IL) + kpar (mod n)
-        child_key = (
-            string_to_number(IL) + string_to_number(parent_key_bytes)
-        ) % SECP256k1.order
+        logger.info("Generated 12-word mnemonic with 128 bits of entropy")
 
-        # Verificar si la clave resultante es válida
-        if child_key == 0 or child_key >= SECP256k1.order:
-            raise ValueError("Clave hija inválida, intente con el siguiente índice")
-
-        child_key_bytes = number_to_string(child_key, SECP256k1.order)
-        return child_key_bytes, IR
-
-    @staticmethod
-    def private_key_to_wif_bch(private_key_bytes, compressed=True):
-        version_byte = b"\x80"  # Mainnet BCH
-        extended_key = version_byte + private_key_bytes
-
-        if compressed:
-            extended_key += b"\x01"
-
-        # Doble hash SHA256
-        first_hash = hashlib.sha256(extended_key).digest()
-        second_hash = hashlib.sha256(first_hash).digest()
-        checksum = second_hash[:4]
-
-        full_key = extended_key + checksum
-        wif = b58encode(full_key)
-        return wif.decode("ascii")
-
-    @staticmethod
-    def xpriv_2_direction_wif(xpriv, chain, address_index):
-
-        version, depth, parent_fingerprint, child_number, chain_code, private_key = (
-            BitcoinFunctions.parse_xpriv(xpriv)
-        )
-
-        chain_child_key_bytes, chain_chain_code_bytes = BitcoinFunctions.ckd_privatekey(
-            private_key, chain_code, chain
-        )
-
-        address_child_key_bytes, b = BitcoinFunctions.ckd_privatekey(
-            chain_child_key_bytes, chain_chain_code_bytes, address_index
-        )
-
-        if string_to_number(address_child_key_bytes) >= SECP256k1.order:
-            raise ValueError("La clave privada generada no es válida")
-
-        wif = BitcoinFunctions.private_key_to_wif_bch(
-            address_child_key_bytes, compressed=True
-        )
-        return wif
-
-    @staticmethod
-    def firm_tx(raw_tx: str, wif_keys: list) -> str:
-        # FALTA DISENYAR EL PROCES DE FIRMA
-        return
+        return mnemonic
