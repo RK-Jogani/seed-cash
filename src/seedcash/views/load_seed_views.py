@@ -190,9 +190,6 @@ class SeedFinalizeView(View):
 
         self.fingerprint = self.seed.get_fingerprint()
         self.seed.set_passphrase(passphrase)
-        logger.debug(
-            f"SeedFinalizeView: fingerprint={self.fingerprint} (with passphrase set to {passphrase})"
-        )
 
     def run(self):
         button_data = [

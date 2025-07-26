@@ -738,17 +738,35 @@ class SeedFinalizeScreen(ButtonListScreen):
         self.show_back_button = False
         super().__post_init__()
 
+        # Generate fingerprint image using visual hash
+        fingerprint_image = vh.generate_lifehash(self.fingerprint)
+
+        # Calculate the icon size to match the original icon size
+        icon_size = GUIConstants.ICON_FONT_SIZE + 12
+
+        # Calculate position to center the fingerprint display
+        fingerprint_y = int((self.buttons[0].screen_y) / 2) + 18
+
+        # Create the text component for the fingerprint label and value
         self.fingerprint_icontl = IconTextLine(
-            icon_name=SeedCashIconsConstants.FINGERPRINT,
-            icon_color=GUIConstants.INFO_COLOR,
-            icon_size=GUIConstants.ICON_FONT_SIZE + 12,
+            icon_name=None,  # No icon since we're using the actual image
             label_text=_("fingerprint"),
             value_text=self.fingerprint,
             font_size=GUIConstants.BODY_FONT_SIZE + 2,
             is_text_centered=True,
-            screen_y=int((self.buttons[0].screen_y) / 2) + 18,
+            screen_y=fingerprint_y,
         )
         self.components.append(self.fingerprint_icontl)
+
+        # Calculate position for the fingerprint image (to the left of the text)
+        # Position it where the icon would normally be
+        image_x = (self.canvas_width - icon_size) // 2 - 60  # Offset to left of text
+        image_y = fingerprint_y - (icon_size // 4)  # Align with text baseline
+
+        # Add the fingerprint image to paste_images
+        self.paste_images.append(
+            (fingerprint_image.resize((icon_size, icon_size)), (image_x, image_y))
+        )
 
 
 @dataclass
