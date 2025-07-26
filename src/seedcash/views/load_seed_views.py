@@ -1,6 +1,4 @@
 import logging
-import random
-from binascii import hexlify
 from gettext import gettext as _
 from seedcash.models.btc_functions import BitcoinFunctions as bf
 from seedcash.gui.components import SeedCashIconsConstants

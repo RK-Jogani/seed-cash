@@ -220,7 +220,8 @@ class MainMenuView(View):
             return Destination(SeedCashGenerateSeedView)
 
         elif button_data[selected_menu_num] == "Settings":
-            return Destination(SettingsMenuView)
+            from seedcash.views.setting_views import SettingOptionsView
+            return Destination(SettingOptionsView)
 
         elif button_data[selected_menu_num] == "Power Off":
             return Destination(PowerOffView)

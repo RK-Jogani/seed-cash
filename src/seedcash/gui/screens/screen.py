@@ -295,6 +295,7 @@ class ButtonListScreen(BaseScreen):
     selected_button: int = 0  # Currently selected button index
     is_button_text_centered: bool = True  # Whether button text should be centered
     is_bottom_list: bool = False  # If True, aligns buttons to bottom of screen
+    is_top_nav: bool = False  # If True, displays a top navigation bar
 
     # Font properties - initialized in __post_init__ to allow dynamic loading
     button_font_name: str = None
@@ -334,6 +335,11 @@ class ButtonListScreen(BaseScreen):
         if self.is_bottom_list:
             button_list_y = self.canvas_height - (
                 button_list_height + GUIConstants.EDGE_PADDING
+            )
+        elif self.is_top_nav:
+            # Center buttons vertically below the top nav
+            button_list_y = (
+                GUIConstants.TOP_NAV_HEIGHT
             )
         else:
             # Center buttons vertically by default

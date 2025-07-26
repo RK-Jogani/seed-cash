@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from gettext import gettext as _
 from PIL import Image, ImageDraw, ImageFilter
 from typing import List
-
 import qrcode
 
 from seedcash.hardware.buttons import HardwareButtonsConstants
@@ -21,6 +20,7 @@ from seedcash.gui.components import (
 )
 
 from seedcash.gui.keyboard import Keyboard, TextEntryDisplay
+from seedcash.models import visual_hash as vh
 
 from .screen import (
     RET_CODE__BACK_BUTTON,
@@ -760,18 +760,47 @@ class SeedOptionsScreen(ButtonListScreen):
         self.is_button_text_centered = False
         super().__post_init__()
 
-        self.button = IconButton(
+        # Generate fingerprint image
+        fingerprint_image = vh.generate_lifehash(self.fingerprint)
+
+        # Calculate dimensions
+        image_size = 36
+        spacing = 2 * GUIConstants.COMPONENT_PADDING  # Space between text and image
+
+        # Calculate text width to determine total width needed
+        font = Fonts.get_font(GUIConstants.BODY_FONT_NAME, GUIConstants.BODY_FONT_SIZE)
+        text_bbox = font.getbbox(self.fingerprint)
+        text_width = text_bbox[2] - text_bbox[0]
+
+        # Calculate total width (text + spacing + image)
+        total_width = text_width + spacing + image_size
+
+        # Calculate starting x position to center everything
+        start_x = (
+            self.canvas_width - total_width
+        ) // 2 - GUIConstants.EDGE_PADDING // 2
+
+        # Position text on the left
+        text_x = start_x
+        text_y = GUIConstants.EDGE_PADDING + (image_size // 4)
+        text_component = TextArea(
             text=self.fingerprint,
-            screen_x=GUIConstants.EDGE_PADDING,
-            screen_y=GUIConstants.EDGE_PADDING,
-            icon_name=SeedCashIconsConstants.FINGERPRINT,
-            icon_size=GUIConstants.ICON_FONT_SIZE + 12,
-            is_text_centered=True,
-            is_icon_inline=True,
-            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
-            background_color=GUIConstants.BACKGROUND_COLOR,
+            screen_x=text_x,
+            screen_y=text_y,
+            font_name=GUIConstants.BODY_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
         )
-        self.components.append(self.button)
+        self.components.append(text_component)
+
+        # Position image on the right (after text + spacing)
+        image_x = start_x + text_width + spacing
+        image_y = GUIConstants.EDGE_PADDING
+
+        # Add the fingerprint image to paste_images
+        self.paste_images.append(
+            (fingerprint_image.resize((image_size, image_size)), (image_x, image_y))
+        )
 
 
 @dataclass
