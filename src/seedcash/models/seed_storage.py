@@ -46,11 +46,11 @@ class SeedStorage:
             raise InvalidSeedException("Seed has not been initialized")
         return self.seed
 
-    def get_fingerprint_mnemonic(self) -> str:
+    def get_generated_seed(self) -> str:
         if not self._mnemonic:
             raise InvalidSeedException("Mnemonic has not been initialized")
         else:
             logger.info("Generating fingerprint from mnemonic: %s", self._mnemonic)
             mnemonic_seed = Seed(mnemonic=self._mnemonic)
             mnemonic_seed.generate_seed()
-            return mnemonic_seed.fingerprint
+            return mnemonic_seed

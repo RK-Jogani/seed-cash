@@ -201,10 +201,7 @@ class Controller(Singleton):
             )
 
     def discard_seed(self):
-        if self.storage.seed:
-            self.storage.seed = None
-        else:
-            raise Exception(f"There is no seed to discard; the current seed is None.")
+        self.storage.seed = None
 
     def pop_prev_from_back_stack(self):
         if len(self.back_stack) > 0:
@@ -360,28 +357,6 @@ class Controller(Singleton):
     @property
     def is_screensaver_running(self):
         return self.screensaver is not None and self.screensaver.is_running
-
-    def start_screensaver(self):
-        # If a toast is running, tell it to give up the Renderer.lock; it will then
-        # block until the screensaver is done, at which point the toast can re-acquire
-        # the Renderer.lock and resume where it left off.
-        if self.toast_notification_thread and self.toast_notification_thread.is_alive():
-            logger.info(
-                f"Controller: settings toggle_render_lock for {self.toast_notification_thread.__class__.__name__}"
-            )
-            self.toast_notification_thread.toggle_renderer_lock()
-
-        logger.info("Controller: Starting screensaver")
-        if not self.screensaver:
-            # Do a lazy/late import and instantiation to reduce Controller initial startup time
-            from seedcash.views.screensaver import ScreensaverScreen
-            from seedcash.hardware.buttons import HardwareButtons
-
-            self.screensaver = ScreensaverScreen(HardwareButtons.get_instance())
-
-        # Start the screensaver, but it will block until it can acquire the Renderer.lock.
-        self.screensaver.start()
-        logger.info("Controller: Screensaver started")
 
     def reset_screensaver_timeout(self):
         """

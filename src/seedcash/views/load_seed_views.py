@@ -78,14 +78,8 @@ class SeedMnemonicEntryView(View):
         )
 
         if ret == RET_CODE__BACK_BUTTON:
-            if self.cur_word_index > 0:
-                # If we are not at the first word, we can go back to the previous word
-                # removing the previous word from the storage.
-                self.controller.storage._mnemonic[self.cur_word_index - 1] = None
-                return Destination(BackStackView)
-            else:
-                self.controller.storage.discard_mnemonic()
-                return Destination(MainMenuView)
+            self.controller.storage.discard_mnemonic()
+            return Destination(BackStackView)
 
         # ret will be our new mnemonic word
         self.controller.storage.update_mnemonic(ret, self.cur_word_index)
@@ -129,6 +123,7 @@ class SeedMnemonicEntryView(View):
             confirm = self.run_screen(
                 SeedCashSeedWordsScreen,
                 seed_words=self.controller.storage._mnemonic,
+                show_back_button=False,  # No back button here
             )
 
             if confirm == "CONFIRM":
@@ -179,11 +174,11 @@ class SeedFinalizeView(View):
     CONFIRM = ButtonOption("Confirm")
     PASSPHRASE = ButtonOption("Add Passphrase")
 
-    def __init__(self):
+    def __init__(self, seed: Seed = None):
         super().__init__()
 
         # NTBC
-        self.seed = self.controller.storage.get_seed()
+        self.seed = seed or self.controller.storage.get_seed()
 
         passphrase = self.seed.passphrase
         self.seed.set_passphrase("")
@@ -210,7 +205,7 @@ class SeedFinalizeView(View):
             return Destination(SeedOptionsView)
 
         elif button_data[selected_menu_num] == self.PASSPHRASE:
-            return Destination(SeedAddPassphraseView)
+            return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
         elif selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
@@ -225,10 +220,14 @@ class SeedAddPassphraseView(View):
     def __init__(
         self,
         initial_keyboard: str = load_seed_screens.SeedAddPassphraseScreen.KEYBOARD__LOWERCASE_BUTTON_TEXT,
+        seed: Seed = None,
     ):
         super().__init__()
         self.initial_keyboard = initial_keyboard
-        self.seed = self.controller.storage.get_seed()
+        if seed is None:
+            self.seed = self.controller.storage.get_seed()
+        else:
+            self.seed = seed
 
     def run(self):
         ret_dict = self.run_screen(
@@ -243,12 +242,14 @@ class SeedAddPassphraseView(View):
 
         if "is_back_button" in ret_dict:
             if len(self.seed.passphrase) > 0:
-                return Destination(SeedAddPassphraseExitDialogView)
+                return Destination(
+                    SeedAddPassphraseExitDialogView, view_args={"seed": self.seed}
+                )
             else:
                 return Destination(BackStackView)
 
         elif len(self.seed.passphrase) > 0:
-            return Destination(SeedReviewPassphraseView)
+            return Destination(SeedReviewPassphraseView, view_args={"seed": self.seed})
 
         else:
             return Destination(SeedFinalizeView)
@@ -259,9 +260,9 @@ class SeedAddPassphraseExitDialogView(View):
     EDIT = ButtonOption("Edit passphrase")
     DISCARD = ButtonOption("Discard passphrase", button_label_color="red")
 
-    def __init__(self):
+    def __init__(self, seed: Seed = None):
         super().__init__()
-        self.seed = self.controller.storage.get_seed()
+        self.seed = seed or self.controller.storage.get_seed()
 
     def run(self):
         button_data = [self.EDIT, self.DISCARD]
@@ -276,11 +277,11 @@ class SeedAddPassphraseExitDialogView(View):
         )
 
         if button_data[selected_menu_num] == self.EDIT:
-            return Destination(SeedAddPassphraseView)
+            return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
         elif button_data[selected_menu_num] == self.DISCARD:
             self.seed.set_passphrase("")
-            return Destination(SeedFinalizeView)
+            return Destination(SeedFinalizeView, view_args={"seed": self.seed})
 
 
 # Fifth Possible Load Seed View if the user wants to add a passphrase
@@ -292,9 +293,9 @@ class SeedReviewPassphraseView(View):
     EDIT = ButtonOption("Edit passphrase")
     DONE = ButtonOption("Done")
 
-    def __init__(self):
+    def __init__(self, seed: Seed = None):
         super().__init__()
-        self.seed = self.controller.storage.get_seed()
+        self.seed = seed or self.controller.storage.get_seed()
 
     def run(self):
         # Get the before/after fingerprints
@@ -318,10 +319,15 @@ class SeedReviewPassphraseView(View):
         )
 
         if button_data[selected_menu_num] == self.EDIT:
-            return Destination(SeedAddPassphraseView)
+            return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
         elif button_data[selected_menu_num] == self.DONE:
-            return Destination(SeedOptionsView)
+
+            if self.controller.storage.seed:
+                return Destination(SeedOptionsView)
+
+            self.controller.storage.discard_mnemonic()
+            return Destination(MainMenuView)
 
 
 # Final Possible Load Seed View

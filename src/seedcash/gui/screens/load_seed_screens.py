@@ -194,94 +194,254 @@ class SeedCashLoadSeedScreen(BaseScreen):
                 return self.selected_button
 
 
-# display the seed words entered by the user in a grid layout
 @dataclass
 class SeedCashSeedWordsScreen(BaseScreen):
-    """Screen to display the seed words entered by the user in a grid layout.
-    This is used to display the seed words entered by the user in the SeedCash flow.
-    """
-
     seed_words: list = None
+    show_back_button: bool = True
 
-    def __init__(self, seed_words: list):
-        super().__init__()
-        self.seed_words = seed_words
+    def __post_init__(self):
+        super().__post_init__()
 
-        # Display seed words in a grid (4 words per line)
-        word_height = GUIConstants.BUTTON_HEIGHT
-        word_width = (
-            int((self.canvas_width - 3 * GUIConstants.COMPONENT_PADDING) / 3) - 2
-        )
-        initial_y = 2 * GUIConstants.COMPONENT_PADDING
-        initial_x = GUIConstants.EDGE_PADDING
+        if not self.seed_words:
+            self.seed_words = []
 
-        # example list
-        # seed_words=['abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'abandon', 'about']
+        self.word_count = len(self.seed_words)
+        self.current_page = 0
+        self.words_per_page = 4
+        self.total_pages = (
+            self.word_count + self.words_per_page - 1
+        ) // self.words_per_page
 
-        self.btn_data = []
-        for i, word in enumerate(self.seed_words):
-            btn = Button(
-                text=f"{i+1}. {word}",
-                screen_x=initial_x
-                + (i % 3) * (word_width + GUIConstants.COMPONENT_PADDING),
-                screen_y=initial_y
-                + (i // 3) * (word_height + GUIConstants.COMPONENT_PADDING),
-                width=word_width,
-                height=word_height,
-                font_size=10,
-                is_text_centered=True,
-                is_scrollable_text=True,
-            )
-            self.btn_data.append(btn)
+        # Calculate layout for word display
+        self.word_height = GUIConstants.BUTTON_HEIGHT
 
-    def draw_buttons(self):
-        """Draw the seed words as buttons in a grid layout."""
-        self.image_draw.rectangle(
-            (
-                GUIConstants.EDGE_PADDING,
-                GUIConstants.EDGE_PADDING,
-                self.canvas_width - GUIConstants.EDGE_PADDING,
-                self.canvas_height - GUIConstants.EDGE_PADDING,
-            ),
-            fill=GUIConstants.BACKGROUND_COLOR,
+        # Position words below the top navigation
+        self.word_y = 2 * GUIConstants.COMPONENT_PADDING
+        self.word_x = 2 * GUIConstants.COMPONENT_PADDING
+        self.word_width = self.canvas_width - 4 * GUIConstants.COMPONENT_PADDING
+
+        # Position for navigation buttons
+        self.nav_buttons_y = (
+            self.canvas_height - GUIConstants.BUTTON_HEIGHT - GUIConstants.EDGE_PADDING
         )
 
-        # Draw each seed word button
-        for i, btn in enumerate(self.btn_data):
-            btn.render()
+        # Create initial components
+        self._create_components()
 
-        # confirm button
-        confirm_button = Button(
-            text=_("Confirm"),
+        # Start with back button selected
+        self.selected_button = 1
+        self.components[self.selected_button].is_selected = True
+
+    def _create_components(self):
+        """Create components for displaying seed words and navigation"""
+        self.components.clear()
+
+        # Add back button to return to the previous screen
+        self.back_button = IconButton(
+            icon_name=SeedCashIconsConstants.BACK,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=GUIConstants.EDGE_PADDING,
-            screen_y=self.canvas_height
-            - GUIConstants.BUTTON_HEIGHT
-            - GUIConstants.EDGE_PADDING,
-            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
-            height=GUIConstants.BUTTON_HEIGHT,
-            is_text_centered=True,
-            is_selected=True,
+            screen_y=self.nav_buttons_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=False,
+            is_selected=False,
         )
-        confirm_button.render()
+
+        # Add next/confirm button
+        next_icon = (
+            SeedCashIconsConstants.CHECK
+            if self.current_page == self.total_pages - 1
+            else SeedCashIconsConstants.CHEVRON_RIGHT
+        )
+        self.next_button = IconButton(
+            icon_name=next_icon,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=self.canvas_width
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.nav_buttons_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_selected=False,
+        )
+
+        self.components.append(self.back_button)
+        self.components.append(self.next_button)
+
+        # Add words for current page as non-selectable buttons
+        start_index = self.current_page * self.words_per_page
+        end_index = min(start_index + self.words_per_page, self.word_count)
+
+        for i in range(start_index, end_index):
+            word = self.seed_words[i]
+            word_y_pos = self.word_y + (
+                (i - start_index) * (self.word_height + GUIConstants.COMPONENT_PADDING)
+            )
+
+            # Add word index (1-12) before the word
+            word_text = f"{i + 1:2d}. {word}"
+
+            button = Button(
+                text=word_text,
+                is_text_centered=False,
+                font_name=GUIConstants.BODY_FONT_NAME,
+                font_size=GUIConstants.BODY_FONT_SIZE,
+                screen_x=self.word_x,
+                screen_y=word_y_pos,
+                width=self.word_width,
+                height=self.word_height,
+                is_selected=False,
+                background_color=GUIConstants.BUTTON_BACKGROUND_COLOR,
+                font_color=GUIConstants.BUTTON_FONT_COLOR,
+            )
+            self.components.append(button)
+
+    def _render(self):
+        """Render the screen with seed words"""
+        super()._render()
+
+        # Render all components
+        for component in self.components:
+            component.render()
+
+        self.renderer.show_image()
 
     def _run(self):
-        """Run the screen and wait for user input to confirm the seed words."""
+        self._render()  # Initial render
         while True:
-
-            self.draw_buttons()
-            self.renderer.show_image()
+            ret = self._run_callback()
+            if ret is not None:
+                logging.info("Exiting SeedCashSeedWordsScreen due to _run_callback")
+                return ret
 
             user_input = self.hw_inputs.wait_for(
-                HardwareButtonsConstants.KEYS__ANYCLICK
+                [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
             )
 
-            if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                return "CONFIRM"  # User confirmed the seed words
+            with self.renderer.lock:
+                if self.show_back_button:
+                    if user_input == HardwareButtonsConstants.KEY_LEFT:
+                        # Move selection to back button
+                        if self.selected_button == 1:
+                            self.components[self.selected_button].is_selected = False
+                            self.components[self.selected_button].render()
+                            self.selected_button = 0
+                            self.components[self.selected_button].is_selected = True
+                            self.components[self.selected_button].render()
+                    elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                        # Move selection to next button
+                        if self.selected_button == 0:
+                            self.components[self.selected_button].is_selected = False
+                            self.components[self.selected_button].render()
+                            self.selected_button = 1
+                            self.components[self.selected_button].is_selected = True
+                            self.components[self.selected_button].render()
 
+                    elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                        if self.selected_button == 0:  # Back button
+                            if self.current_page > 0:
+                                # Go back to previous page
+                                self.current_page -= 1
+                                self._create_components()
+                                # Keep selection on back button
+                                self.selected_button = 0
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                            else:
+                                return RET_CODE__BACK_BUTTON
+                        elif self.selected_button == 1:  # Next/Confirm button
+                            if self.current_page < self.total_pages - 1:
+                                # Go to next page
+                                self.current_page += 1
+                                self._create_components()
+                                # Keep selection on next button
+                                self.selected_button = 1
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                            else:
+                                # Confirm action
+                                return "CONFIRM"
 
-"""*****************************
-Seed Signer Code Screens
-*****************************"""
+                else:
+                    if self.current_page == 0:  # select the next button
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button = 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                        if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                            self.current_page += 1
+                            self._create_components()
+                            # Keep selection on next button
+                            self.selected_button = 1
+                            self.components[self.selected_button].is_selected = True
+                            self._render()
+
+                    else:
+                        if user_input == HardwareButtonsConstants.KEY_LEFT:
+                            # Move selection to back button
+                            if self.selected_button == 1:
+                                self.components[self.selected_button].is_selected = (
+                                    False
+                                )
+                                self.components[self.selected_button].render()
+                                self.selected_button = 0
+                                self.components[self.selected_button].is_selected = True
+                                self.components[self.selected_button].render()
+
+                        elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                            # Move selection to next button
+                            if self.selected_button == 0:
+                                self.components[self.selected_button].is_selected = (
+                                    False
+                                )
+                                self.components[self.selected_button].render()
+                                self.selected_button = 1
+                                self.components[self.selected_button].is_selected = True
+                                self.components[self.selected_button].render()
+                        elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                            if self.selected_button == 0:  # Back button
+                                if self.current_page > 1:
+                                    # Go back to previous page
+                                    self.current_page -= 1
+                                    self._create_components()
+                                    # Keep selection on back button
+                                    self.selected_button = 0
+                                    self.components[
+                                        self.selected_button
+                                    ].is_selected = True
+                                    self._render()
+                                else:
+                                    self.current_page = 0
+                                    self._create_components()
+                                    # Keep the selection on the next button
+                                    self.selected_button = 1
+                                    self.components[
+                                        self.selected_button
+                                    ].is_selected = True
+                                    self._render()
+                            elif self.selected_button == 1:  # Next/Confirm button
+                                if self.current_page < self.total_pages - 1:
+                                    # Go to next page
+                                    self.current_page += 1
+                                    self._create_components()
+                                    # Keep selection on next button
+                                    self.selected_button = 1
+                                    self.components[
+                                        self.selected_button
+                                    ].is_selected = True
+                                    self._render()
+                                else:
+                                    # Confirm action
+                                    return "CONFIRM"
+
+                self.renderer.show_image()
 
 
 @dataclass
@@ -818,158 +978,6 @@ class SeedOptionsScreen(ButtonListScreen):
         # Add the fingerprint image to paste_images
         self.paste_images.append(
             (fingerprint_image.resize((image_size, image_size)), (image_x, image_y))
-        )
-
-
-@dataclass
-class SeedWordsScreen(WarningEdgesMixin, ButtonListScreen):
-    words: List[str] = None
-    page_index: int = 0
-    num_pages: int = 3
-    is_bottom_list: bool = True
-    status_color: str = GUIConstants.DIRE_WARNING_COLOR
-
-    def __post_init__(self):
-        # TRANSLATOR_NOTE: Displays the page number and total: (e.g. page 1 of 6)
-        self.title = _("Seed Words: {}/{}").format(self.page_index + 1, self.num_pages)
-        super().__post_init__()
-
-        words_per_page = len(self.words)
-
-        self.body_x = 0
-        self.body_y = self.top_nav.height - int(GUIConstants.COMPONENT_PADDING / 2)
-        self.body_height = self.buttons[0].screen_y - self.body_y
-
-        # Have to supersample the whole body since it's all at the small font size
-        supersampling_factor = 1
-        font = Fonts.get_font(
-            GUIConstants.BODY_FONT_NAME,
-            (GUIConstants.TOP_NAV_TITLE_FONT_SIZE + 2) * supersampling_factor,
-        )
-
-        # Calc horizontal center based on longest word
-        max_word_width = 0
-        for word in self.words:
-            (left, top, right, bottom) = font.getbbox(word, anchor="ls")
-            if right > max_word_width:
-                max_word_width = right
-
-        # Measure the max digit height for the numbering boxes, from baseline
-        number_font = Fonts.get_font(
-            GUIConstants.BODY_FONT_NAME,
-            GUIConstants.BUTTON_FONT_SIZE * supersampling_factor,
-        )
-        (left, top, right, bottom) = number_font.getbbox("24", anchor="ls")
-        number_height = -1 * top
-        number_width = right
-        number_box_width = number_width + int(
-            GUIConstants.COMPONENT_PADDING / 2 * supersampling_factor
-        )
-        number_box_height = number_box_width
-
-        number_box_x = (
-            int(
-                (
-                    self.canvas_width * supersampling_factor
-                    - number_box_width
-                    - GUIConstants.COMPONENT_PADDING * supersampling_factor
-                    - max_word_width
-                )
-            )
-            / 2
-        )
-        number_box_y = GUIConstants.COMPONENT_PADDING * supersampling_factor
-
-        # Set up our temp supersampled rendering surface
-        self.body_img = Image.new(
-            "RGB",
-            (
-                self.canvas_width * supersampling_factor,
-                self.body_height * supersampling_factor,
-            ),
-            GUIConstants.BACKGROUND_COLOR,
-        )
-        draw = ImageDraw.Draw(self.body_img)
-
-        for index, word in enumerate(self.words):
-            draw.rounded_rectangle(
-                (
-                    number_box_x,
-                    number_box_y,
-                    number_box_x + number_box_width,
-                    number_box_y + number_box_height,
-                ),
-                fill=GUIConstants.BUTTON_BACKGROUND_COLOR,
-                radius=5 * supersampling_factor,
-            )
-            baseline_y = (
-                number_box_y
-                + number_box_height
-                - int((number_box_height - number_height) / 2)
-            )
-            draw.text(
-                (number_box_x + int(number_box_width / 2), baseline_y),
-                font=number_font,
-                text=str(self.page_index * words_per_page + index + 1),
-                fill=GUIConstants.INFO_COLOR,
-                anchor="ms",  # Middle (centered), baSeline
-            )
-
-            # Now draw the word
-            draw.text(
-                (
-                    number_box_x
-                    + number_box_width
-                    + (GUIConstants.COMPONENT_PADDING * supersampling_factor),
-                    baseline_y,
-                ),
-                font=font,
-                text=word,
-                fill=GUIConstants.BODY_FONT_COLOR,
-                anchor="ls",  # Left, baSeline
-            )
-
-            number_box_y += number_box_height + (
-                int(1.5 * GUIConstants.COMPONENT_PADDING) * supersampling_factor
-            )
-
-        # Resize to target and sharpen final image
-        self.body_img = self.body_img.resize(
-            (self.canvas_width, self.body_height), Image.Resampling.LANCZOS
-        )
-        self.body_img = self.body_img.filter(ImageFilter.SHARPEN)
-        self.paste_images.append((self.body_img, (self.body_x, self.body_y)))
-
-
-@dataclass
-class SeedBIP85SelectChildIndexScreen(KeyboardScreen):
-    def __post_init__(self):
-        self.title = _("BIP-85 Index")
-        self.user_input = ""
-
-        # Specify the keys in the keyboard
-        self.rows = 3
-        self.cols = 5
-        self.keys_charset = "0123456789"
-        self.show_save_button = True
-
-        super().__post_init__()
-
-
-@dataclass
-class SeedWordsBackupTestPromptScreen(ButtonListScreen):
-    def __post_init__(self):
-        self.title = _("Verify Backup?")
-        self.show_back_button = False
-        self.is_bottom_list = True
-        super().__post_init__()
-
-        self.components.append(
-            TextArea(
-                text=_("Optionally verify that your mnemonic backup is correct."),
-                screen_y=self.top_nav.height,
-                is_text_centered=True,
-            )
         )
 
 
