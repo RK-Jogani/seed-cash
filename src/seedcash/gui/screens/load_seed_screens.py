@@ -197,7 +197,6 @@ class SeedCashLoadSeedScreen(BaseScreen):
 @dataclass
 class SeedCashSeedWordsScreen(BaseScreen):
     seed_words: list = None
-    show_back_button: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -229,7 +228,7 @@ class SeedCashSeedWordsScreen(BaseScreen):
         self._create_components()
 
         # Start with back button selected
-        self.selected_button = 1
+        self.selected_button = 0
         self.components[self.selected_button].is_selected = True
 
     def _create_components(self):
@@ -254,6 +253,7 @@ class SeedCashSeedWordsScreen(BaseScreen):
             if self.current_page == self.total_pages - 1
             else SeedCashIconsConstants.CHEVRON_RIGHT
         )
+
         self.next_button = IconButton(
             icon_name=next_icon,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
@@ -265,9 +265,10 @@ class SeedCashSeedWordsScreen(BaseScreen):
             height=GUIConstants.TOP_NAV_BUTTON_SIZE,
             is_selected=False,
         )
-
-        self.components.append(self.back_button)
         self.components.append(self.next_button)
+
+        if self.current_page > 0:
+            self.components.append(self.back_button)
 
         # Add words for current page as non-selectable buttons
         start_index = self.current_page * self.words_per_page
@@ -324,17 +325,24 @@ class SeedCashSeedWordsScreen(BaseScreen):
             )
 
             with self.renderer.lock:
-                if self.show_back_button:
+                if self.current_page == 0:  # select the next button
+                    self.components[self.selected_button].is_selected = False
+                    self.components[self.selected_button].render()
+                    self.selected_button = 0
+                    self.components[self.selected_button].is_selected = True
+                    self.components[self.selected_button].render()
+
+                    if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                        self.current_page += 1
+                        self._create_components()
+                        # Keep selection on next button
+                        self.selected_button = 0
+                        self.components[self.selected_button].is_selected = True
+                        self._render()
+
+                else:
                     if user_input == HardwareButtonsConstants.KEY_LEFT:
                         # Move selection to back button
-                        if self.selected_button == 1:
-                            self.components[self.selected_button].is_selected = False
-                            self.components[self.selected_button].render()
-                            self.selected_button = 0
-                            self.components[self.selected_button].is_selected = True
-                            self.components[self.selected_button].render()
-                    elif user_input == HardwareButtonsConstants.KEY_RIGHT:
-                        # Move selection to next button
                         if self.selected_button == 0:
                             self.components[self.selected_button].is_selected = False
                             self.components[self.selected_button].render()
@@ -342,106 +350,45 @@ class SeedCashSeedWordsScreen(BaseScreen):
                             self.components[self.selected_button].is_selected = True
                             self.components[self.selected_button].render()
 
+                    elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                        # Move selection to next button
+                        if self.selected_button == 1:
+                            self.components[self.selected_button].is_selected = False
+                            self.components[self.selected_button].render()
+                            self.selected_button = 0
+                            self.components[self.selected_button].is_selected = True
+                            self.components[self.selected_button].render()
                     elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                        if self.selected_button == 0:  # Back button
-                            if self.current_page > 0:
+                        if self.selected_button == 1:  # Back button
+                            if self.current_page > 1:
                                 # Go back to previous page
                                 self.current_page -= 1
                                 self._create_components()
                                 # Keep selection on back button
-                                self.selected_button = 0
+                                self.selected_button = 1
                                 self.components[self.selected_button].is_selected = True
                                 self._render()
                             else:
-                                return RET_CODE__BACK_BUTTON
-                        elif self.selected_button == 1:  # Next/Confirm button
+                                self.current_page = 0
+                                self._create_components()
+                                # Keep the selection on the next button
+                                self.selected_button = 0
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                        elif self.selected_button == 0:  # Next/Confirm button
                             if self.current_page < self.total_pages - 1:
                                 # Go to next page
                                 self.current_page += 1
                                 self._create_components()
                                 # Keep selection on next button
-                                self.selected_button = 1
+                                self.selected_button = 0
                                 self.components[self.selected_button].is_selected = True
                                 self._render()
                             else:
                                 # Confirm action
                                 return "CONFIRM"
 
-                else:
-                    if self.current_page == 0:  # select the next button
-                        self.components[self.selected_button].is_selected = False
-                        self.components[self.selected_button].render()
-                        self.selected_button = 1
-                        self.components[self.selected_button].is_selected = True
-                        self.components[self.selected_button].render()
-
-                        if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                            self.current_page += 1
-                            self._create_components()
-                            # Keep selection on next button
-                            self.selected_button = 1
-                            self.components[self.selected_button].is_selected = True
-                            self._render()
-
-                    else:
-                        if user_input == HardwareButtonsConstants.KEY_LEFT:
-                            # Move selection to back button
-                            if self.selected_button == 1:
-                                self.components[self.selected_button].is_selected = (
-                                    False
-                                )
-                                self.components[self.selected_button].render()
-                                self.selected_button = 0
-                                self.components[self.selected_button].is_selected = True
-                                self.components[self.selected_button].render()
-
-                        elif user_input == HardwareButtonsConstants.KEY_RIGHT:
-                            # Move selection to next button
-                            if self.selected_button == 0:
-                                self.components[self.selected_button].is_selected = (
-                                    False
-                                )
-                                self.components[self.selected_button].render()
-                                self.selected_button = 1
-                                self.components[self.selected_button].is_selected = True
-                                self.components[self.selected_button].render()
-                        elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                            if self.selected_button == 0:  # Back button
-                                if self.current_page > 1:
-                                    # Go back to previous page
-                                    self.current_page -= 1
-                                    self._create_components()
-                                    # Keep selection on back button
-                                    self.selected_button = 0
-                                    self.components[
-                                        self.selected_button
-                                    ].is_selected = True
-                                    self._render()
-                                else:
-                                    self.current_page = 0
-                                    self._create_components()
-                                    # Keep the selection on the next button
-                                    self.selected_button = 1
-                                    self.components[
-                                        self.selected_button
-                                    ].is_selected = True
-                                    self._render()
-                            elif self.selected_button == 1:  # Next/Confirm button
-                                if self.current_page < self.total_pages - 1:
-                                    # Go to next page
-                                    self.current_page += 1
-                                    self._create_components()
-                                    # Keep selection on next button
-                                    self.selected_button = 1
-                                    self.components[
-                                        self.selected_button
-                                    ].is_selected = True
-                                    self._render()
-                                else:
-                                    # Confirm action
-                                    return "CONFIRM"
-
-                self.renderer.show_image()
+            self.renderer.show_image()
 
 
 @dataclass
@@ -1618,7 +1565,7 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
                     text=line,
                     font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
                     font_size=font_size,
-                    font_color="orange",
+                    font_color=GUIConstants.ACCENT_COLOR,
                     is_text_centered=True,
                     screen_y=screen_y,
                     allow_text_overflow=True,

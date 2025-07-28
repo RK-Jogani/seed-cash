@@ -123,7 +123,6 @@ class SeedMnemonicEntryView(View):
             confirm = self.run_screen(
                 SeedCashSeedWordsScreen,
                 seed_words=self.controller.storage._mnemonic,
-                show_back_button=False,  # No back button here
             )
 
             if confirm == "CONFIRM":
@@ -191,8 +190,8 @@ class SeedFinalizeView(View):
 
     def run(self):
         button_data = [
-            self.CONFIRM,
             self.PASSPHRASE,
+            self.CONFIRM,
         ]
 
         selected_menu_num = self.run_screen(
@@ -202,8 +201,11 @@ class SeedFinalizeView(View):
         )
 
         if button_data[selected_menu_num] == self.CONFIRM:
-            return Destination(SeedOptionsView)
+            if self.controller.storage.seed:
+                return Destination(SeedOptionsView)
 
+            self.controller.storage.discard_mnemonic()
+            return Destination(MainMenuView)
         elif button_data[selected_menu_num] == self.PASSPHRASE:
             return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
@@ -322,7 +324,6 @@ class SeedReviewPassphraseView(View):
             return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
         elif button_data[selected_menu_num] == self.DONE:
-
             if self.controller.storage.seed:
                 return Destination(SeedOptionsView)
 
