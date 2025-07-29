@@ -293,20 +293,16 @@ class SeedReviewPassphraseView(View):
     """
 
     EDIT = ButtonOption("Edit passphrase")
-    DONE = ButtonOption("Done")
+    DONE = ButtonOption("Confirm")
 
     def __init__(self, seed: Seed = None):
         super().__init__()
         self.seed = seed or self.controller.storage.get_seed()
 
     def run(self):
-        # Get the before/after fingerprints
-        fingerprint_without = self.seed.get_fingerprint()
-
         passphrase = self.seed.passphrase
         self.seed.set_passphrase(passphrase)
         self.seed.generate_seed()  # Ensure the seed is generated with the passphrase
-        fingerprint_with = self.seed.get_fingerprint()
 
         button_data = [self.EDIT, self.DONE]
 
@@ -314,8 +310,6 @@ class SeedReviewPassphraseView(View):
         # routing options sane.
         selected_menu_num = self.run_screen(
             load_seed_screens.SeedReviewPassphraseScreen,
-            fingerprint_without=fingerprint_without,
-            fingerprint_with=fingerprint_with,
             passphrase=self.seed.passphrase,
             button_data=button_data,
         )
@@ -324,6 +318,33 @@ class SeedReviewPassphraseView(View):
             return Destination(SeedAddPassphraseView, view_args={"seed": self.seed})
 
         elif button_data[selected_menu_num] == self.DONE:
+            return Destination(
+                SeedReviewPassphraseExitDialogView, view_args={"seed": self.seed}
+            )
+
+
+class SeedReviewPassphraseExitDialogView(View):
+    CONFIRM = ButtonOption("Confirm")
+
+    def __init__(self, seed: Seed = None):
+        super().__init__()
+
+        # NTBC
+        self.seed = seed or self.controller.storage.get_seed()
+        self.fingerprint = self.seed.get_fingerprint()
+
+    def run(self):
+        button_data = [
+            self.CONFIRM,
+        ]
+
+        selected_menu_num = self.run_screen(
+            load_seed_screens.SeedFinalizeScreen,
+            fingerprint=self.fingerprint,
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.CONFIRM:
             if self.controller.storage.seed:
                 return Destination(SeedOptionsView)
 
@@ -377,14 +398,27 @@ class SeedExportXprivView(View):
         self.xpriv = self.controller.storage.seed.xpriv
 
     def run(self):
-        from seedcash.gui.screens.load_seed_screens import (
-            QRCodeScreen,
-        )
 
-        selected_menu_num = self.run_screen(QRCodeScreen, qr_data=self.xpriv)
+        self.qr_screen = True
 
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
+        while True:
+
+            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
+
+            if self.qr_screen:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.QRCodeScreen, qr_data=self.xpriv
+                )
+            else:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.AddressScreen, qr_data=self.xpriv
+                )
+
+            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+                return Destination(BackStackView)
+            elif self.selected_menu_num == "SWITCH":
+                self.qr_screen = not self.qr_screen
+                continue
 
 
 class SeedExportXpubView(View):
@@ -393,14 +427,27 @@ class SeedExportXpubView(View):
         self.xpub = self.controller.storage.seed.xpub
 
     def run(self):
-        from seedcash.gui.screens.load_seed_screens import (
-            QRCodeScreen,
-        )
 
-        selected_menu_num = self.run_screen(QRCodeScreen, qr_data=self.xpub)
+        self.qr_screen = True
 
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
+        while True:
+
+            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
+
+            if self.qr_screen:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.QRCodeScreen, qr_data=self.xpub
+                )
+            else:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.AddressScreen, qr_data=self.xpub
+                )
+
+            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+                return Destination(BackStackView)
+            elif self.selected_menu_num == "SWITCH":
+                self.qr_screen = not self.qr_screen
+                continue
 
 
 class SeedGenerateAddressView(View):
@@ -434,14 +481,27 @@ class SeedGenerateCashAddrView(View):
         self.address = address
 
     def run(self):
-        from seedcash.gui.screens.load_seed_screens import (
-            QRCodeScreen,
-        )
 
-        selected_menu_num = self.run_screen(QRCodeScreen, qr_data=self.address)
+        self.qr_screen = True
 
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
+        while True:
+
+            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
+
+            if self.qr_screen:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.QRCodeScreen, qr_data=self.address
+                )
+            else:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.AddressScreen, qr_data=self.address
+                )
+
+            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+                return Destination(BackStackView)
+            elif self.selected_menu_num == "SWITCH":
+                self.qr_screen = not self.qr_screen
+                continue
 
 
 class SeedGenerateLegacyView(View):
@@ -450,14 +510,27 @@ class SeedGenerateLegacyView(View):
         self.address = address
 
     def run(self):
-        from seedcash.gui.screens.load_seed_screens import (
-            QRCodeScreen,
-        )
 
-        selected_menu_num = self.run_screen(QRCodeScreen, qr_data=self.address)
+        self.qr_screen = True
 
-        if selected_menu_num == RET_CODE__BACK_BUTTON:
-            return Destination(BackStackView)
+        while True:
+
+            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
+
+            if self.qr_screen:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.QRCodeScreen, qr_data=self.address
+                )
+            else:
+                self.selected_menu_num = self.run_screen(
+                    load_seed_screens.AddressScreen, qr_data=self.address
+                )
+
+            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+                return Destination(BackStackView)
+            elif self.selected_menu_num == "SWITCH":
+                self.qr_screen = not self.qr_screen
+                continue
 
 
 class SeedSignTransactionView(View):

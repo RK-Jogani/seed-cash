@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: Remove all pixel hard coding
 class GUIConstants:
-    # QR
-    QR_WIDTH = 140
-    QR_HEIGHT = 140
+
     # General
     EDGE_PADDING = 8
     COMPONENT_PADDING = 8

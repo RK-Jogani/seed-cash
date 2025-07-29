@@ -852,7 +852,9 @@ class SeedFinalizeScreen(ButtonListScreen):
         icon_size = GUIConstants.ICON_FONT_SIZE + 12
 
         # Calculate position to center the fingerprint display
-        fingerprint_y = int((self.buttons[0].screen_y) / 2) + 18
+        fingerprint_y = int((self.buttons[0].screen_y) / 2)
+
+        image_x = (self.canvas_width - icon_size) // 2 - 40  # Offset to left of text
 
         # Create the text component for the fingerprint label and value
         self.fingerprint_icontl = IconTextLine(
@@ -862,13 +864,14 @@ class SeedFinalizeScreen(ButtonListScreen):
             font_size=GUIConstants.BODY_FONT_SIZE + 2,
             is_text_centered=True,
             screen_y=fingerprint_y,
+            screen_x=(image_x - 24),
         )
         self.components.append(self.fingerprint_icontl)
 
         # Calculate position for the fingerprint image (to the left of the text)
         # Position it where the icon would normally be
-        image_x = (self.canvas_width - icon_size) // 2 - 60  # Offset to left of text
-        image_y = fingerprint_y - (icon_size // 4)  # Align with text baseline
+
+        image_y = fingerprint_y - icon_size // 2
 
         # Add the fingerprint image to paste_images
         self.paste_images.append(
@@ -1489,44 +1492,33 @@ class SeedAddPassphraseScreen(BaseTopNavScreen):
 
 @dataclass
 class SeedReviewPassphraseScreen(ButtonListScreen):
-    fingerprint_without: str = None
-    fingerprint_with: str = None
     passphrase: str = None
 
     def __post_init__(self):
         # Customize defaults
-        self.title = _("Verify Passphrase")
         self.is_bottom_list = True
 
         super().__post_init__()
 
-        self.components.append(
-            IconTextLine(
-                icon_name=SeedCashIconsConstants.FINGERPRINT,
-                icon_color=GUIConstants.INFO_COLOR,
-                # TRANSLATOR_NOTE: Describes the effect of applying a BIP-39 passphrase; it changes the seed's fingerprint
-                label_text=_("changes fingerprint"),
-                value_text=f"{self.fingerprint_without} >> {self.fingerprint_with}",
-                is_text_centered=True,
-                screen_y=self.buttons[0].screen_y
-                - GUIConstants.COMPONENT_PADDING
-                - int(GUIConstants.BODY_FONT_SIZE * 2.5),
-            )
-        )
-
+        # Replace spaces with block characters for better visibility
         if self.passphrase != self.passphrase.strip() or "  " in self.passphrase:
             self.passphrase = self.passphrase.replace(" ", "\u2589")
+
+        # Calculate available height for passphrase display
         available_height = (
-            self.components[-1].screen_y
-            - GUIConstants.TOP_NAV_HEIGHT
-            + GUIConstants.COMPONENT_PADDING
+            self.canvas_height
+            - 4 * GUIConstants.EDGE_PADDING
+            - 2 * GUIConstants.BUTTON_HEIGHT
         )
+
         max_font_size = GUIConstants.TOP_NAV_TITLE_FONT_SIZE + 8
         min_font_size = GUIConstants.TOP_NAV_TITLE_FONT_SIZE - 4
         font_size = max_font_size
         max_lines = 3
         passphrase = [self.passphrase]
         found_solution = False
+
+        # Find optimal font size and line configuration
         for font_size in range(max_font_size, min_font_size, -2):
             if found_solution:
                 break
@@ -1535,6 +1527,7 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
             )
             left, top, right, bottom = font.getbbox("X")
             char_width, char_height = right - left, bottom - top
+
             for num_lines in range(1, max_lines + 1):
                 # Break the passphrase into n lines
                 chars_per_line = math.ceil(len(self.passphrase) / num_lines)
@@ -1542,7 +1535,7 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
                 for i in range(0, len(self.passphrase), chars_per_line):
                     passphrase.append(self.passphrase[i : i + chars_per_line])
 
-                # See if it fits in this configuration
+                # Check if it fits in this configuration
                 if (
                     char_width * len(passphrase[0])
                     <= self.canvas_width - 2 * GUIConstants.EDGE_PADDING
@@ -1554,11 +1547,8 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
                         break
 
         # Set up each line of text
-        screen_y = (
-            GUIConstants.TOP_NAV_HEIGHT
-            + int((available_height - char_height * num_lines) / 2)
-            - GUIConstants.COMPONENT_PADDING
-        )
+        screen_y = 2 * GUIConstants.EDGE_PADDING
+
         for line in passphrase:
             self.components.append(
                 TextArea(
@@ -1571,59 +1561,191 @@ class SeedReviewPassphraseScreen(ButtonListScreen):
                     allow_text_overflow=True,
                 )
             )
-            screen_y += char_height + 2
+            screen_y += char_height + 2 * GUIConstants.COMPONENT_PADDING
 
 
-# QR Code Screen
 @dataclass
-class QRCodeScreen(WarningEdgesMixin, ButtonListScreen):
+class QRCodeScreen(BaseScreen):
+    qr_data: str = None
+    qr_size: int = 180
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.toggle_button_width = 75
+        self.back_button_width = (
+            self.canvas_width - self.toggle_button_width - 3 * GUIConstants.EDGE_PADDING
+        )
+
+        self.buttons_y = (
+            self.canvas_height - GUIConstants.BUTTON_HEIGHT - GUIConstants.EDGE_PADDING
+        )
+
+        # Generate QR image
+        qr_img = qrcode.make(self.qr_data).convert("RGB")
+        qr_img = qr_img.resize((self.qr_size, self.qr_size), Image.LANCZOS)
+        x_cord = (self.canvas_width - self.qr_size) // 2
+
+        # Initialize shared components
+        self.back_button = Button(
+            text=_("Back"),
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.buttons_y,
+            height=GUIConstants.BUTTON_HEIGHT,
+            width=self.back_button_width,
+            is_selected=False,
+        )
+
+        self.toggle_button = Button(
+            text="Text",
+            screen_x=self.canvas_width
+            - self.toggle_button_width
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.buttons_y,
+            width=self.toggle_button_width,
+            height=GUIConstants.BUTTON_HEIGHT,
+            is_selected=False,
+        )
+
+        self.paste_images = [(qr_img, (x_cord, GUIConstants.EDGE_PADDING // 2))]
+        self.components = [self.back_button, self.toggle_button]
+        self.selected_button = 1
+        self.components[self.selected_button].is_selected = True
+
+    def _render(self):
+        """Render the screen"""
+        super()._render()
+        for component in self.components:
+            component.render()
+        self.renderer.show_image()
+
+    def _run(self):
+        self._render()
+        while True:
+            user_input = self.hw_inputs.wait_for(
+                [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
+            )
+
+            if user_input == HardwareButtonsConstants.KEY_LEFT:
+                if self.selected_button == 1:
+                    self.components[self.selected_button].is_selected = False
+                    self.selected_button = 0
+                    self.components[self.selected_button].is_selected = True
+                    self._render()
+
+            elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                if self.selected_button == 0:
+                    self.components[self.selected_button].is_selected = False
+                    self.selected_button = 1
+                    self.components[self.selected_button].is_selected = True
+                    self._render()
+
+            elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                if self.selected_button == 0:
+                    return RET_CODE__BACK_BUTTON
+                elif self.selected_button == 1:
+                    return "SWITCH"
+
+
+@dataclass
+class AddressScreen(BaseScreen):
     qr_data: str = None
 
     def __post_init__(self):
-
-        back_button = ButtonOption(_("Back"), SeedCashIconsConstants.BACK)
-
-        self.button_data = [back_button]
-        self.is_bottom_list = True
         super().__post_init__()
 
-        # qr_image = QR().qrimage(data=self.qr_data).convert("RGBA")
-        qr_img = qrcode.make(self.qr_data)
-        qr_img = qr_img.convert("RGB")
-        qr_img = qr_img.resize((140, 140), Image.LANCZOS)
-        qr_image = qr_img
-
-        x_cord = (self.canvas_width - GUIConstants.QR_WIDTH) // 2
-
-        self.paste_images.append((qr_image, (x_cord, GUIConstants.EDGE_PADDING // 2)))
-
-        self.components.append(
-            TextArea(
-                text=self.qr_data,
-                font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
-                font_size=11,
-                is_text_centered=True,
-                auto_line_break=True,
-                treat_chars_as_words=True,
-                allow_text_overflow=True,
-                screen_y=GUIConstants.QR_HEIGHT + GUIConstants.EDGE_PADDING,
-                screen_x=GUIConstants.EDGE_PADDING,
-            )
+        self.toggle_button_width = 75
+        self.back_button_width = (
+            self.canvas_width - self.toggle_button_width - 3 * GUIConstants.EDGE_PADDING
         )
 
+        self.buttons_y = (
+            self.canvas_height - GUIConstants.BUTTON_HEIGHT - GUIConstants.EDGE_PADDING
+        )
+
+        self.qr_text = TextArea(
+            text=self.qr_data,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE + 2,
+            is_text_centered=True,
+            auto_line_break=True,
+            treat_chars_as_words=True,
+            allow_text_overflow=True,
+            screen_y=3 * GUIConstants.EDGE_PADDING,
+            screen_x=GUIConstants.EDGE_PADDING,
+            height=self.canvas_height
+            - 4 * GUIConstants.EDGE_PADDING
+            - GUIConstants.BUTTON_HEIGHT,
+            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
+        )
+
+        # Initialize shared components
+        self.back_button = Button(
+            text=_("Back"),
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.buttons_y,
+            height=GUIConstants.BUTTON_HEIGHT,
+            width=self.back_button_width,
+            is_selected=False,
+        )
+
+        # QR code button
+        self.toggle_button = Button(
+            text="QR Code",
+            screen_x=self.canvas_width
+            - self.toggle_button_width
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.buttons_y,
+            width=self.toggle_button_width,
+            height=GUIConstants.BUTTON_HEIGHT,
+            is_selected=False,
+        )
+
+        self.components = [self.back_button, self.toggle_button, self.qr_text]
+        self.selected_button = 1
+        self.components[self.selected_button].is_selected = True
+
+    def _render(self):
+        """Render the screen"""
+        super()._render()
+        for component in self.components:
+            component.render()
+        self.renderer.show_image()
+
     def _run(self):
-        # Wait for the user to press the back button
+        self._render()
         while True:
             user_input = self.hw_inputs.wait_for(
-                HardwareButtonsConstants.KEYS__ANYCLICK
+                [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
             )
 
-            if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                return RET_CODE__BACK_BUTTON  # User confirmed the seed words
+            if user_input == HardwareButtonsConstants.KEY_LEFT:
+                if self.selected_button == 1:
+                    self.components[self.selected_button].is_selected = False
+                    self.selected_button = 0
+                    self.components[self.selected_button].is_selected = True
+                    self._render()
 
+            elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                if self.selected_button == 0:
+                    self.components[self.selected_button].is_selected = False
+                    self.selected_button = 1
+                    self.components[self.selected_button].is_selected = True
+                    self._render()
 
-# the seed generation address screen has radio buttons for selecting the address type and one input field for entering index
-# types legacy and cashaddress are supported
+            elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                if self.selected_button == 0:
+                    return RET_CODE__BACK_BUTTON
+                elif self.selected_button == 1:
+                    return "SWITCH"
 
 
 @dataclass
@@ -1637,8 +1759,8 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
         #
         self.title_text = "Introduce Address Index"
 
-        # Track the selected address type (default to Legacy)
-        self.address_type = "legacy"
+        # Track the selected address type (default to Cashaddr)
+        self.address_type = "cashaddr"
 
         # Store the user's input index
         self.user_input = ""
@@ -1709,7 +1831,7 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
         hw_button_y = int((self.canvas_height - GUIConstants.BUTTON_HEIGHT) / 2)
 
         self.hw_button1 = Button(
-            text="Legacy",
+            text="Cashaddr",
             is_text_centered=False,
             font_name=GUIConstants.FIXED_WIDTH_EMPHASIS_FONT_NAME,
             font_size=GUIConstants.BUTTON_FONT_SIZE + 4,
@@ -1719,11 +1841,11 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
             - 3 * GUIConstants.COMPONENT_PADDING
             - GUIConstants.BUTTON_HEIGHT,
             is_scrollable_text=False,
-            is_selected=True,  # Legacy is selected by default
+            is_selected=True,  # Cashaddr is selected by default
         )
 
         self.hw_button2 = Button(
-            text="Cashaddr",
+            text="Legacy",
             is_text_centered=False,
             font_name=GUIConstants.FIXED_WIDTH_EMPHASIS_FONT_NAME,
             font_size=GUIConstants.BUTTON_FONT_SIZE + 4,
@@ -1767,8 +1889,8 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
         super()._render()
 
         # Update button selection states
-        self.hw_button1.is_selected = self.address_type == "legacy"
-        self.hw_button2.is_selected = self.address_type == "cashaddr"
+        self.hw_button1.is_selected = self.address_type == "cashaddr"
+        self.hw_button2.is_selected = self.address_type == "legacy"
 
         # Update text display
         self.keyboard.render_keys()
@@ -1787,14 +1909,14 @@ class SeedGenerateAddressScreen(BaseTopNavScreen):
             with self.renderer.lock:
                 # Check for button presses
                 if input == HardwareButtonsConstants.KEY1:
-                    # Legacy button pressed
-                    self.address_type = "legacy"
+                    # Cashaddr button pressed
+                    self.address_type = "cashaddr"
                     self._render()
                     continue
 
                 elif input == HardwareButtonsConstants.KEY2:
-                    # Cashaddr button pressed
-                    self.address_type = "cashaddr"
+                    # Legacy button pressed
+                    self.address_type = "legacy"
                     self._render()
                     continue
 
