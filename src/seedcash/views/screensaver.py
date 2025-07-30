@@ -53,7 +53,7 @@ class OpeningSplashScreen(LogoScreen):
         # instantiated. This is a hack to clear the screen for now.
         self.clear_screen()
 
-        logo_offset_x = int((self.canvas_width - self.logo.width) / 2)
+        logo_offset_x = 0
         logo_offset_y = 0
 
         background = Image.new("RGBA", size=self.logo.size, color="black")
@@ -69,30 +69,6 @@ class OpeningSplashScreen(LogoScreen):
         else:
             # Skip animation for the screenshot generator
             self.renderer.canvas.paste(self.logo, (logo_offset_x, logo_offset_y))
-
-        # Display version num below SeedCash logo
-        font = Fonts.get_font(
-            GUIConstants.BODY_FONT_NAME,
-            GUIConstants.TOP_NAV_TITLE_FONT_SIZE,
-        )
-        version = f"v{controller.VERSION}"
-
-        # The logo png is 240x240, but the actual logo is 70px tall, vertically centered
-        logo_height = 70
-        version_x = int(self.renderer.canvas_width / 2)
-        version_y = (
-            int(self.canvas_height / 2)
-            + int(logo_height / 2)
-            + logo_offset_y
-            + GUIConstants.COMPONENT_PADDING
-        )
-        self.renderer.draw.text(
-            xy=(version_x, version_y),
-            text=version,
-            font=font,
-            fill=GUIConstants.ACCENT_COLOR,
-            anchor="mt",
-        )
 
         if not self.is_screenshot_renderer:
             self.renderer.show_image()

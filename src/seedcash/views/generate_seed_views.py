@@ -146,9 +146,6 @@ class ToolsCalcFinalWordShowFinalWordView(View):
 
         button_data = [self.CONFIRM]
 
-        # TRANSLATOR_NOTE: label to calculate the last word of a BIP-39 mnemonic seed phrase
-        title = _("Final Word Calc")
-
         selected_menu_num = self.run_screen(
             ToolsCalcFinalWordScreen,
             button_data=button_data,

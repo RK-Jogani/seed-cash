@@ -217,7 +217,7 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
         )
 
         final_word = TextArea(
-            text=f"Final word: \n {self.actual_final_word}",
+            text=f"Final word:",
             screen_x=text_x,
             screen_y=text_y
             + 2 * GUIConstants.BUTTON_FONT_SIZE
@@ -225,9 +225,21 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
             is_text_centered=True,
         )
 
+        actual_final_word = Button(
+            text=f"{self.actual_final_word}",
+            screen_x=2 * GUIConstants.EDGE_PADDING,
+            screen_y=text_y
+            + 3 * GUIConstants.BUTTON_FONT_SIZE
+            + 5 * GUIConstants.COMPONENT_PADDING,
+            font_size=GUIConstants.BODY_FONT_SIZE + 8,
+            width=self.canvas_width - 4 * GUIConstants.EDGE_PADDING,
+            background_color=GUIConstants.INACTIVE_COLOR,
+        )
+
         self.components.append(your_input)
         self.components.append(checksum)
         self.components.append(final_word)
+        self.components.append(actual_final_word)
 
 
 @dataclass

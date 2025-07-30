@@ -395,24 +395,21 @@ class SeedOptionsView(View):
 class SeedExportXprivView(View):
     def __init__(self):
         super().__init__()
-        self.xpriv = self.controller.storage.seed.xpriv
+        self.address = self.controller.storage.seed.xpriv
 
     def run(self):
 
         self.qr_screen = True
 
         while True:
-
-            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
-
             if self.qr_screen:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.QRCodeScreen, qr_data=self.xpriv
-                )
+
+                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
             else:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.AddressScreen, qr_data=self.xpriv
-                )
+
+                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
+
+            self.selected_menu_num = self.screen.display()
 
             if self.selected_menu_num == RET_CODE__BACK_BUTTON:
                 return Destination(BackStackView)
@@ -424,24 +421,21 @@ class SeedExportXprivView(View):
 class SeedExportXpubView(View):
     def __init__(self):
         super().__init__()
-        self.xpub = self.controller.storage.seed.xpub
+        self.address = self.controller.storage.seed.xpub
 
     def run(self):
 
         self.qr_screen = True
 
         while True:
-
-            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
-
             if self.qr_screen:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.QRCodeScreen, qr_data=self.xpub
-                )
+
+                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
             else:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.AddressScreen, qr_data=self.xpub
-                )
+
+                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
+
+            self.selected_menu_num = self.screen.display()
 
             if self.selected_menu_num == RET_CODE__BACK_BUTTON:
                 return Destination(BackStackView)
@@ -485,17 +479,14 @@ class SeedGenerateCashAddrView(View):
         self.qr_screen = True
 
         while True:
-
-            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
-
             if self.qr_screen:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.QRCodeScreen, qr_data=self.address
-                )
+
+                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
             else:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.AddressScreen, qr_data=self.address
-                )
+
+                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
+
+            self.selected_menu_num = self.screen.display()
 
             if self.selected_menu_num == RET_CODE__BACK_BUTTON:
                 return Destination(BackStackView)
@@ -514,17 +505,14 @@ class SeedGenerateLegacyView(View):
         self.qr_screen = True
 
         while True:
-
-            logger.debug(f"SeedExportXprivView: Running screen {self.screen}")
-
             if self.qr_screen:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.QRCodeScreen, qr_data=self.address
-                )
+
+                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
             else:
-                self.selected_menu_num = self.run_screen(
-                    load_seed_screens.AddressScreen, qr_data=self.address
-                )
+
+                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
+
+            self.selected_menu_num = self.screen.display()
 
             if self.selected_menu_num == RET_CODE__BACK_BUTTON:
                 return Destination(BackStackView)
