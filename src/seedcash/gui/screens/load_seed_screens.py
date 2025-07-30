@@ -3,8 +3,7 @@ import math
 
 from dataclasses import dataclass
 from gettext import gettext as _
-from PIL import Image, ImageDraw, ImageFilter
-from typing import List
+from PIL import Image, ImageDraw
 import qrcode
 
 from seedcash.hardware.buttons import HardwareButtonsConstants
@@ -163,16 +162,7 @@ class SeedCashLoadSeedScreen(BaseScreen):
         next_btn.render()
 
     def _run(self):
-        from time import time
-
-        last_interaction = time()
-        INACTIVITY_TIMEOUT = 300  # 5 minutes
-
         while True:
-            current_time = time()
-            if current_time - last_interaction > INACTIVITY_TIMEOUT:
-                return -1  # Timeout
-
             self.draw_buttons()
             self.renderer.show_image()
 
@@ -183,8 +173,6 @@ class SeedCashLoadSeedScreen(BaseScreen):
 
             if not user_input:
                 continue
-
-            last_interaction = time()
 
             if user_input == HardwareButtonsConstants.KEY_LEFT:
                 self.selected_button = 1
