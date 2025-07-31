@@ -424,6 +424,9 @@ class SeedCashQRView(View):
         super().__init__()
         self.address = address
 
+        # Add delay to allow QR code to be displayed
+        time.sleep(0.35)
+
     def run(self):
 
         self.selected_menu_num = self.run_screen(
@@ -443,6 +446,9 @@ class SeedCashAddressView(View):
     def __init__(self, address: str = ""):
         super().__init__()
         self.address = address
+
+        # Add delay to allow address to be displayed
+        time.sleep(0.35)
 
     def run(self):
 
