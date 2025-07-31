@@ -383,81 +383,17 @@ class SeedOptionsView(View):
         )
 
         if button_data[selected_menu_num] == self.EXPORT_XPRIV:
-            return Destination(SeedExportXprivView)
+            return Destination(SeedCashQRView, view_args=dict(address=self.seed.xpriv))
         elif button_data[selected_menu_num] == self.EXPORT_XPUB:
-            return Destination(SeedExportXpubView)
+            return Destination(
+                SeedCashAddressView, view_args=dict(address=self.seed.xpub)
+            )
         elif button_data[selected_menu_num] == self.GENERATE_ADDRESS:
             return Destination(SeedGenerateAddressView)
         elif button_data[selected_menu_num] == self.SIGN_TRANSACTION:
             return Destination(SeedSignTransactionView)
         elif button_data[selected_menu_num] == self.EXPEL_SEED:
             return Destination(SeedDiscardView)
-
-
-class SeedExportXprivView(View):
-    def __init__(self):
-        super().__init__()
-        self.address = self.controller.storage.seed.xpriv
-
-    def run(self):
-        self.qr_screen = True
-        self.last_click = 0
-        # Minimum delay between clicks in seconds
-        self.click_delay = 0.3
-
-        while True:
-            current_time = time.time()
-            # Check if enough time has passed since last click
-            if current_time - self.last_click < self.click_delay:
-                time.sleep(self.click_delay - (current_time - self.last_click))
-                continue
-
-            if self.qr_screen:
-                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
-            else:
-                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
-
-            self.selected_menu_num = self.screen.display()
-
-            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
-                return Destination(BackStackView)
-            elif self.selected_menu_num == "SWITCH":
-                self.last_click = time.time()
-                self.qr_screen = not self.qr_screen
-                continue
-
-
-class SeedExportXpubView(View):
-    def __init__(self):
-        super().__init__()
-        self.address = self.controller.storage.seed.xpub
-
-    def run(self):
-        self.qr_screen = True
-        self.last_click = 0
-        # Minimum delay between clicks in seconds
-        self.click_delay = 0.3
-
-        while True:
-            current_time = time.time()
-            # Check if enough time has passed since last click
-            if current_time - self.last_click < self.click_delay:
-                time.sleep(self.click_delay - (current_time - self.last_click))
-                continue
-
-            if self.qr_screen:
-                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
-            else:
-                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
-
-            self.selected_menu_num = self.screen.display()
-
-            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
-                return Destination(BackStackView)
-            elif self.selected_menu_num == "SWITCH":
-                self.last_click = time.time()
-                self.qr_screen = not self.qr_screen
-                continue
 
 
 class SeedGenerateAddressView(View):
@@ -477,78 +413,48 @@ class SeedGenerateAddressView(View):
 
         if addr_type == "legacy":
             address = bf.xpub_to_legacy_address(self.xpub, addr_index)
-            return Destination(SeedGenerateLegacyView, view_args=dict(address=address))
+            return Destination(SeedCashQRView, view_args=dict(address=address))
         elif addr_type == "cashaddr":
             address = bf.xpub_to_cashaddr_address(self.xpub, addr_index)
+            return Destination(SeedCashQRView, view_args=dict(address=address))
+
+
+class SeedCashQRView(View):
+    def __init__(self, address: str = ""):
+        super().__init__()
+        self.address = address
+
+    def run(self):
+
+        self.selected_menu_num = self.run_screen(
+            load_seed_screens.QRCodeScreen,
+            qr_data=self.address,
+        )
+
+        if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+        elif self.selected_menu_num == "SWITCH":
             return Destination(
-                SeedGenerateCashAddrView, view_args=dict(address=address)
+                SeedCashAddressView, view_args=dict(address=self.address)
             )
 
 
-class SeedGenerateCashAddrView(View):
+class SeedCashAddressView(View):
     def __init__(self, address: str = ""):
         super().__init__()
         self.address = address
 
     def run(self):
-        self.qr_screen = True
-        self.last_click = 0
-        # Minimum delay between clicks in seconds
-        self.click_delay = 0.3
 
-        while True:
-            current_time = time.time()
-            # Check if enough time has passed since last click
-            if current_time - self.last_click < self.click_delay:
-                time.sleep(self.click_delay - (current_time - self.last_click))
-                continue
+        self.selected_menu_num = self.run_screen(
+            load_seed_screens.AddressScreen,
+            qr_data=self.address,
+        )
 
-            if self.qr_screen:
-                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
-            else:
-                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
-
-            self.selected_menu_num = self.screen.display()
-
-            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
-                return Destination(BackStackView)
-            elif self.selected_menu_num == "SWITCH":
-                self.last_click = time.time()
-                self.qr_screen = not self.qr_screen
-                continue
-
-
-class SeedGenerateLegacyView(View):
-    def __init__(self, address: str = ""):
-        super().__init__()
-        self.address = address
-
-    def run(self):
-        self.qr_screen = True
-        self.last_click = 0
-        # Minimum delay between clicks in seconds
-        self.click_delay = 0.3
-
-        while True:
-            current_time = time.time()
-            # Check if enough time has passed since last click
-            if current_time - self.last_click < self.click_delay:
-                time.sleep(self.click_delay - (current_time - self.last_click))
-                continue
-
-            if self.qr_screen:
-                self.screen = load_seed_screens.QRCodeScreen(qr_data=self.address)
-            else:
-                self.screen = load_seed_screens.AddressScreen(qr_data=self.address)
-
-            self.selected_menu_num = self.screen.display()
-
-            if self.selected_menu_num == RET_CODE__BACK_BUTTON:
-                return Destination(BackStackView)
-            elif self.selected_menu_num == "SWITCH":
-                self.last_click = time.time()
-                self.qr_screen = not self.qr_screen
-                continue
+        if self.selected_menu_num == RET_CODE__BACK_BUTTON:
+            return Destination(BackStackView)
+        elif self.selected_menu_num == "SWITCH":
+            return Destination(BackStackView)
 
 
 class SeedSignTransactionView(View):
