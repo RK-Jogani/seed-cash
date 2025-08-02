@@ -132,9 +132,7 @@ class SeedMnemonicEntryView(View):
                     self.controller.storage.convert_mnemonic_to_seed()
 
                 except Exception as e:
-                    logger.error(
-                        f"SeedMnemonicEntryView: Error converting pending mnemonic to pending seed: {e}"
-                    )
+
                     return Destination(SeedMnemonicInvalidView)
 
                 return Destination(SeedFinalizeView)
@@ -385,9 +383,7 @@ class SeedOptionsView(View):
         if button_data[selected_menu_num] == self.EXPORT_XPRIV:
             return Destination(SeedCashQRView, view_args=dict(address=self.seed.xpriv))
         elif button_data[selected_menu_num] == self.EXPORT_XPUB:
-            return Destination(
-                SeedCashAddressView, view_args=dict(address=self.seed.xpub)
-            )
+            return Destination(SeedCashQRView, view_args=dict(address=self.seed.xpub))
         elif button_data[selected_menu_num] == self.GENERATE_ADDRESS:
             return Destination(SeedGenerateAddressView)
         elif button_data[selected_menu_num] == self.SIGN_TRANSACTION:
@@ -425,7 +421,7 @@ class SeedCashQRView(View):
         self.address = address
 
         # Add delay to allow QR code to be displayed
-        time.sleep(0.35)
+        time.sleep(0.4)
 
     def run(self):
 
@@ -438,7 +434,9 @@ class SeedCashQRView(View):
             return Destination(BackStackView)
         elif self.selected_menu_num == "SWITCH":
             return Destination(
-                SeedCashAddressView, view_args=dict(address=self.address)
+                SeedCashAddressView,
+                view_args=dict(address=self.address),
+                skip_current_view=True,
             )
 
 
@@ -448,7 +446,7 @@ class SeedCashAddressView(View):
         self.address = address
 
         # Add delay to allow address to be displayed
-        time.sleep(0.35)
+        time.sleep(0.4)
 
     def run(self):
 
@@ -460,7 +458,11 @@ class SeedCashAddressView(View):
         if self.selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
         elif self.selected_menu_num == "SWITCH":
-            return Destination(BackStackView)
+            return Destination(
+                SeedCashQRView,
+                view_args=dict(address=self.address),
+                skip_current_view=True,
+            )
 
 
 class SeedSignTransactionView(View):

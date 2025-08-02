@@ -497,3 +497,491 @@ class BitcoinFunctions:
         logger.info("Generated 12-word mnemonic with 128 bits of entropy")
 
         return mnemonic
+
+
+# # This update aims to implement support for 15 18 21 and 24 words. You will find the backend below.
+# # As for the UI, we will treat it in parts. First, let's see what modifications will be needed to
+# #  load seed. Load seed now starts with a view of two labels. Delete both please. This view is gona
+# #  be totalyy diferent. This view will be a view with one label of "Choose the length of your mnemonic phrase"
+# # and under it a boxes (WACH THE IMAGE 1 PLEASE) with the options 12, 15, 18, 21 and 24. Also a return and
+# #  continue button. Make that 12 words is the default one.
+# # After this the following view is the keyboard for introduce the word1. We have to add the 15, 18, 21 and 24 views.. obiusly
+# #  After all entrys we have to use g2_confirmatio in function of the number of words. g2_confirmation_12words, g2_confirmation_15words ...
+# # i call it g2_confirmation_n_words for do it similar to origial bf but change it how you want
+# #After confirmat mnemonic generate_seed must create the seed. We can use same generate_seed function cause is generic.
+# #After generate seed (hexa_seed) we can forget about if the orignal mnemonic was 12, 15... cause it is not important. So all the code of load seed is done.
+
+
+# #Now lets work in generate seed. When you click generate seed now you look a random seed button and calculate 12 words seed.
+
+# #Firts of all change "calculate 12 words seed." for ": "Calculate 12th word"
+
+# #This firts view will have 6 buttons: (use Calc if calculate is to long)
+# # 1)Random seed
+# # 2)Calculate 12th word
+# # 3)Calculate 15th word
+# # 4)Calculate 18th word
+# # 5)Calculate 21th word
+# # 6)Calculate 24th word
+
+# #If you click random seed is not gonna show the firts 4 words of the mnemonic. Now is gona show a new view
+# # like IMAGE 1 for chose the leng of the mnemonic. After select the lenng and click to continu then yes, it will chose the randmly mnemonic.
+# # created. Like now, in groups of 4 words.
+
+# #The backend for all of this is below.  Please ask me what you want to know. Maybe it has errors
+# #I review the code and it seems to be correct.
+
+
+# def g2_confirmation_12words(self):
+#         list39=bf.dictionary_BIP39()
+#         list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in self.g2_mnemonic]
+#         bin_mnemonic = "".join(list_index_bi)
+
+#         n = len(bin_mnemonic)
+#         checksum = bin_mnemonic[-4:]
+
+#         #Conversio bin-bytes
+#         decimal_mnemonic = int(bin_mnemonic[:-4], 2)
+#         hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 4) // 4)
+#         if len(hexa_mnemonic) % 2 != 0: # Ens assegurem que la longitud hexadecimal sigui múltiple de 2
+#             hexa_mnemonic = '0' + hexa_mnemonic
+
+#         byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+#         #Hash i conversio a binari
+#         hash_object = hashlib.sha256()
+#         hash_object.update(byte_mnemonic)
+#         hexa_hashmnemonic = hash_object.hexdigest()
+#         bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+#         checksum_revised = bin_hashmnemonic[:4]
+
+#         if checksum == checksum_revised:
+#             return self.show_frame(self.g2_2)
+
+
+#         if not checksum == checksum_revised:
+#             self.g2_word_entry.delete(0, 'end')
+#             self.g2_label_1.configure(text="")
+#             self.g2_label_2.configure(text="You have introduced a invalid seed, please try again")
+#             self.g2_counter=0
+#             self.show_frame(self.g2)
+
+# def g2_confirmation_15words(self):
+#         list39=bf.dictionary_BIP39()
+#         list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in self.g2_mnemonic] #mnemonic of 15 words
+#         bin_mnemonic = "".join(list_index_bi)
+
+#         n = len(bin_mnemonic)
+
+#         checksum = bin_mnemonic[-5:] #5 bits de checksum
+
+#         #Conversio bin-bytes
+#         decimal_mnemonic = int(bin_mnemonic[:-5], 2)
+#         hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 5) // 4)
+#         if len(hexa_mnemonic) % 2 != 0: # Ens assegurem que la longitud hexadecimal sigui múltiple de 2
+#             hexa_mnemonic = '0' + hexa_mnemonic
+#         byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+#         #Hash i conversio a binari
+#         hash_object = hashlib.sha256()
+#         hash_object.update(byte_mnemonic)
+#         hexa_hashmnemonic = hash_object.hexdigest()
+#         bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+#         checksum_revised = bin_hashmnemonic[:5] #5 bits de checksum
+
+#         if checksum == checksum_revised:
+#             return self.show_frame(self.g2_2)
+
+
+#         if not checksum == checksum_revised:
+#             self.g2_word_entry.delete(0, 'end')
+#             self.g2_label_1.configure(text="")
+#             self.g2_label_2.configure(text="You have introduced a invalid seed, please try again")
+#             self.g2_counter=0
+#             self.show_frame(self.g2)
+
+
+# def g2_confirmation_18words(self):
+#         list39=bf.dictionary_BIP39()
+#         list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in self.g2_mnemonic] #mnemonic of 18words
+#         bin_mnemonic = "".join(list_index_bi)
+
+#         n = len(bin_mnemonic)
+
+#         checksum = bin_mnemonic[-6:] #6 bits de checksum
+
+#         #Conversio bin-bytes
+#         decimal_mnemonic = int(bin_mnemonic[:-6], 2)
+#         hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 6) // 4)
+#         if len(hexa_mnemonic) % 2 != 0: # Ens assegurem que la longitud hexadecimal sigui múltiple de 2
+#             hexa_mnemonic = '0' + hexa_mnemonic
+#         byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+#         #Hash i conversio a binari
+#         hash_object = hashlib.sha256()
+#         hash_object.update(byte_mnemonic)
+#         hexa_hashmnemonic = hash_object.hexdigest()
+#         bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+#         checksum_revised = bin_hashmnemonic[:6]
+
+#         if checksum == checksum_revised:
+#             return self.show_frame(self.g2_2)
+
+
+#         if not checksum == checksum_revised:
+#             self.g2_word_entry.delete(0, 'end')
+#             self.g2_label_1.configure(text="")
+#             self.g2_label_2.configure(text="You have introduced a invalid seed, please try again")
+#             self.g2_counter=0
+#             self.show_frame(self.g2)
+
+
+# def g2_confirmation_21words(self):
+#         list39=bf.dictionary_BIP39()
+#         list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in self.g2_mnemonic] #mnemonic of 21words
+#         bin_mnemonic = "".join(list_index_bi)
+
+#         n = len(bin_mnemonic)
+
+#         checksum = bin_mnemonic[-7:] #7 bits de checksum
+
+#         #Conversio bin-bytes
+#         decimal_mnemonic = int(bin_mnemonic[:-7], 2)
+#         hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 7) // 4)
+#         if len(hexa_mnemonic) % 2 != 0: # Ens assegurem que la longitud hexadecimal sigui múltiple de 2
+#             hexa_mnemonic = '0' + hexa_mnemonic
+#         byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+#         #Hash i conversio a binari
+#         hash_object = hashlib.sha256()
+#         hash_object.update(byte_mnemonic)
+#         hexa_hashmnemonic = hash_object.hexdigest()
+#         bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+#         checksum_revised = bin_hashmnemonic[:7]
+
+#         if checksum == checksum_revised:
+#             return self.show_frame(self.g2_2)
+
+
+#         if not checksum == checksum_revised:
+#             self.g2_word_entry.delete(0, 'end')
+#             self.g2_label_1.configure(text="")
+#             self.g2_label_2.configure(text="You have introduced a invalid seed, please try again")
+#             self.g2_counter=0
+#             self.show_frame(self.g2)
+
+
+# def g2_confirmation_24words(self):
+#         list39=bf.dictionary_BIP39()
+#         list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in self.g2_mnemonic] #mnemonic of 24words
+#         bin_mnemonic = "".join(list_index_bi)
+
+#         n = len(bin_mnemonic)
+
+#         checksum = bin_mnemonic[-8:] #8 bits de checksum
+
+#         #Conversio bin-bytes
+#         decimal_mnemonic = int(bin_mnemonic[:-8], 2)
+#         hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 8) // 4)
+#         if len(hexa_mnemonic) % 2 != 0: # Ens assegurem que la longitud hexadecimal sigui múltiple de 2
+#             hexa_mnemonic = '0' + hexa_mnemonic
+#         byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+
+#         #Hash i conversio a binari
+#         hash_object = hashlib.sha256()
+#         hash_object.update(byte_mnemonic)
+#         hexa_hashmnemonic = hash_object.hexdigest()
+#         bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+
+#         checksum_revised = bin_hashmnemonic[:8]
+
+#         if checksum == checksum_revised:
+#             return self.show_frame(self.g2_2)
+
+
+#         if not checksum == checksum_revised:
+#             self.g2_word_entry.delete(0, 'end')
+#             self.g2_label_1.configure(text="")
+#             self.g2_label_2.configure(text="You have introduced a invalid seed, please try again")
+#             self.g2_counter=0
+#             self.show_frame(self.g2)
+
+
+# #After verify the mnemonic, we need to generate the seed and the private key.
+# #The seed is generated using the mnemonic and the passphrase.
+# #The private key is generated using the seed.
+# #In this case nothing change in the implementation of the seed generation and the private key generation.
+# #The only change is the number of words in the mnemonic. but we dont have to change nothing cause is the
+# #variable that we use who change (mnemonic string)
+
+# def seed_generator(seed,passphrase):
+#     """ mnemonic + passprhrase --> seed   (512bits=64bytes)"""
+
+#     #This functions should calll (mnemonic,passphrase) instead of (seed,passphrase) cause
+#     # calle seed to passphrase might be confusing. Better dont touch it.. just for you to know
+
+#     #as you see, this function is generic.  cause it does not take in consideration the number of words.
+#     #It just take the mnemonic and the passphrase (indiferent of the number of words) and generate the seed.
+
+#     #Convertim a bytes els inputs
+#     mnemonic_bytes = seed.encode('utf-8')
+#     passphrase_bytes = passphrase.encode('utf-8')
+
+#     #PBKDF2
+#     algorithm="sha512"
+#     salt_bytes = b"mnemonic" + passphrase_bytes
+#     iterations = 2048
+#     key_length = 64
+
+#     bytes_seed=hashlib.pbkdf2_hmac(algorithm,mnemonic_bytes,salt_bytes,iterations,key_length)
+#     hexa_final_seed=bytes_seed.hex()
+#     return hexa_final_seed
+
+# def get_private_and_code(seed):
+#     """Genera la clave privada maestra y el código de cadena a partir de una semilla en hexadecimal"""
+#     hmac_hash = hmac.new(b'Bitcoin seed', bytes.fromhex(seed), hashlib.sha512).digest()
+#     private_master_key = hmac_hash[:32]
+#     private_master_code = hmac_hash[32:]
+#     return private_master_key, private_master_code
+
+
+# #With this  we have the backend of load seed menu with the inplementations of 12,15,18,21 and 24 words.
+# #Now we need to implement the backend of generate seed menu.
+
+
+# #def get_mnemonic(incomplete_mnemonic,last_bits):
+
+# #    string_mnemonic = ' '.join(incomplete_mnemonic)
+# #    list39=dictionary_BIP39()
+# #    list_mnemonic = string_mnemonic.strip().split()
+# #    list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+# #    first_bits = "".join(list_index_bi)
+# #    initial_bits = first_bits + last_bits
+
+# #    decimal_incomplet_mnemonic=int(initial_bits,2)
+# #    hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2) #WE DO NOTneed to change this cause is generic
+# #    byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+# #    hash_object=hashlib.sha256()
+# #    hash_object.update(byte_incomplet_mnemonic)
+# #    hexa_hashmnemonic=hash_object.hexdigest()
+# #    bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+# #    checksum=bin_hashmnemonic[:4] #WE need to change this in the case of 12,15,18,21 and 24 words
+
+# #    bits_mnemonic= initial_bits + checksum
+# #    mnemonic=binmnemonic_to_mnemonic(bits_mnemonic)
+# #    return mnemonic
+
+
+# #take in consideration that "last bits" in funcition of number of words should be..
+
+# #| Words | Last bits                  | Checksum   |
+# #|-------|--------------------------|----------------|
+# #| 12    | 7                        | 4              |
+# #| 15    | 6                        | 5              |
+# #| 18    | 5                        | 6              |
+# #| 21    | 4                        | 7              |
+# #| 24    | 3                        | 8              |
+
+# #and this would effect the function get_bits or how you call it
+
+
+# def submit_bits(self):
+#     bits = self.bits_entry.get()
+#     if all(bit in "01" for bit in bits) and len(bits) == 7: #WE NEED TO CHANGE THIS FOR THE NUMBER OF WORDS
+#         self.word_entry.delete(0, 'end')
+#         self.bits=bits
+#         self.bits_entry.delete(0, 'end')
+#         self.show_frame(self.g1_3)
+#     else:
+#         self.g1_2_label_1.configure(text="Introduce correctamente una secuencia de siete 0 y 1")
+#         self.bits_entry.delete(0, 'end')
+
+
+# #we have to take in consideration also that function binmnemonic_to_mnemonic should be changed in the case of 12,15,18,21 and 24 words.
+
+# #def binmnemonic_to_mnemonic(bin_mnemonic):
+# #    list39=dictionary_BIP39()
+# #    n=len(bin_mnemonic)
+# #    mnemonic=[]
+# #    index=[]
+# #    for i in range(0,n, 11):
+# #        block=bin_mnemonic[i:i+11]
+# #        index_word=int(block,2)
+# #        index.append(index_word)
+# #    for index_word in index:
+# #        word=list39[index_word]
+# #        mnemonic.append(word)
+# #    return mnemonic
+
+# #the final version would be:
+# #take in consideration that the number of words is the number of bits(of complete mnemonic) divided by 11.
+# def binmnemonic_to_mnemonic_n_words(bin_mnemonic):
+#     list39=dictionary_BIP39()
+#     n=len(bin_mnemonic)
+#     number_of_words=n//11
+#     mnemonic=[]
+#     index=[]
+#     for i in range(0,n, number_of_words-1):
+#         block=bin_mnemonic[i:i+11]
+#         index_word=int(block,2)
+#         index.append(index_word)
+#     for index_word in index:
+#         word=list39[index_word]
+#         mnemonic.append(word)
+#     return mnemonic
+
+
+# # RETURNING TO get_mnemonic function. THAT WE DIDNT CHANGE.
+# #WE NEED TO CHANGE THE FUNCTION TO TAKE IN CONSIDERATION THE NUMBER OF WORDS.
+
+# #def get_mnemonic(incomplete_mnemonic,last_bits):
+
+# #    string_mnemonic = ' '.join(incomplete_mnemonic)
+# #    list39=dictionary_BIP39()
+# #    list_mnemonic = string_mnemonic.strip().split()
+# #    list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+# #    first_bits = "".join(list_index_bi)
+# #    initial_bits = first_bits + last_bits
+
+# #    decimal_incomplet_mnemonic=int(initial_bits,2)
+# #    hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2) #WE do NOT need to change this cause is a generic expresion
+# #    byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+# #    hash_object=hashlib.sha256()
+# #    hash_object.update(byte_incomplet_mnemonic)
+# #    hexa_hashmnemonic=hash_object.hexdigest()
+# #    bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+# #    checksum=bin_hashmnemonic[:4] #WE need to change this in the case of 12,15,18,21 and 24 words
+
+# #    bits_mnemonic= initial_bits + checksum
+# #    mnemonic=binmnemonic_to_mnemonic(bits_mnemonic)
+# #    return mnemonic
+
+# #so the final version would be:
+
+# def get_mnemonic_12_words(incomplete_mnemonic,last_bits):
+
+#     string_mnemonic = ' '.join(incomplete_mnemonic)
+#     list39=dictionary_BIP39()
+#     list_mnemonic = string_mnemonic.strip().split()
+#     list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+#     first_bits = "".join(list_index_bi)
+#     initial_bits = first_bits + last_bits
+
+#     decimal_incomplet_mnemonic=int(initial_bits,2)
+#     hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2) #WE do NOT need to change this cause is a generic expresion
+#     byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+#     hash_object=hashlib.sha256()
+#     hash_object.update(byte_incomplet_mnemonic)
+#     hexa_hashmnemonic=hash_object.hexdigest()
+#     bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+#     checksum=bin_hashmnemonic[:4] # 4 bits of checksum for 12 words
+
+#     bits_mnemonic= initial_bits + checksum
+#     mnemonic=binmnemonic_to_mnemonic_n_words(bits_mnemonic)
+#     return mnemonic
+
+# def get_mnemonic_15_words(incomplete_mnemonic,last_bits):
+
+#     string_mnemonic = ' '.join(incomplete_mnemonic)
+#     list39=dictionary_BIP39()
+#     list_mnemonic = string_mnemonic.strip().split()
+#     list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+#     first_bits = "".join(list_index_bi)
+#     initial_bits = first_bits + last_bits
+
+#     decimal_incomplet_mnemonic=int(initial_bits,2)
+#     hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2)
+#     byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+#     hash_object=hashlib.sha256()
+#     hash_object.update(byte_incomplet_mnemonic)
+#     hexa_hashmnemonic=hash_object.hexdigest()
+#     bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+#     checksum=bin_hashmnemonic[:5] # 5 bits of checksum for 15 words
+
+#     bits_mnemonic= initial_bits + checksum
+#     mnemonic=binmnemonic_to_mnemonic_n_words(bits_mnemonic)
+#     return mnemonic
+
+# def get_mnemonic_18_words(incomplete_mnemonic,last_bits):
+
+#     string_mnemonic = ' '.join(incomplete_mnemonic)
+#     list39=dictionary_BIP39()
+#     list_mnemonic = string_mnemonic.strip().split()
+#     list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+#     first_bits = "".join(list_index_bi)
+#     initial_bits = first_bits + last_bits
+
+#     decimal_incomplet_mnemonic=int(initial_bits,2)
+#     hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2)
+#     byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+#     hash_object=hashlib.sha256()
+#     hash_object.update(byte_incomplet_mnemonic)
+#     hexa_hashmnemonic=hash_object.hexdigest()
+#     bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+#     checksum=bin_hashmnemonic[:6] # 6 bits of checksum for 18 words
+
+#     bits_mnemonic= initial_bits + checksum
+#     mnemonic=binmnemonic_to_mnemonic_n_words(bits_mnemonic)
+#     return mnemonic
+
+# def get_mnemonic_21_words(incomplete_mnemonic,last_bits):
+
+#     string_mnemonic = ' '.join(incomplete_mnemonic)
+#     list39=dictionary_BIP39()
+#     list_mnemonic = string_mnemonic.strip().split()
+#     list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+#     first_bits = "".join(list_index_bi)
+#     initial_bits = first_bits + last_bits
+
+#     decimal_incomplet_mnemonic=int(initial_bits,2)
+#     hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2)
+#     byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+#     hash_object=hashlib.sha256()
+#     hash_object.update(byte_incomplet_mnemonic)
+#     hexa_hashmnemonic=hash_object.hexdigest()
+#     bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+#     checksum=bin_hashmnemonic[:7] # 7 bits of checksum for 21 words
+
+#     bits_mnemonic= initial_bits + checksum
+#     mnemonic=binmnemonic_to_mnemonic_n_words(bits_mnemonic)
+#     return mnemonic
+
+# def get_mnemonic_24_words(incomplete_mnemonic,last_bits):
+
+#     string_mnemonic = ' '.join(incomplete_mnemonic)
+#     list39=dictionary_BIP39()
+#     list_mnemonic = string_mnemonic.strip().split()
+#     list_index_bi = [bin(list39.index(word))[2:].zfill(11) for word in list_mnemonic]
+#     first_bits = "".join(list_index_bi)
+#     initial_bits = first_bits + last_bits
+
+#     decimal_incomplet_mnemonic=int(initial_bits,2)
+#     hexa_incomplet_mnemonic=hex(decimal_incomplet_mnemonic)[2:].zfill((len(initial_bits) + 7) // 8 * 2)
+#     byte_incomplet_mnemonic=bytes.fromhex(hexa_incomplet_mnemonic)
+
+#     hash_object=hashlib.sha256()
+#     hash_object.update(byte_incomplet_mnemonic)
+#     hexa_hashmnemonic=hash_object.hexdigest()
+#     bin_hashmnemonic=bin(int(hexa_hashmnemonic,16))[2:].zfill(256)
+
+#     checksum=bin_hashmnemonic[:8] # 8 bits of checksum for 24 words
+
+#     bits_mnemonic= initial_bits + checksum
+#     mnemonic=binmnemonic_to_mnemonic_n_words(bits_mnemonic)
+#     return mnemonic
