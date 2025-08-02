@@ -37,41 +37,68 @@ class Seed:
 
     def _validate_mnemonic(self):
         try:
-            list_index_bi = [
-                bin(self.wordlist.index(word))[2:].zfill(11) for word in self._mnemonic
-            ]
+            # Validate wordlist membership first
+            list_index_bi = []
+            for word in self._mnemonic:
+                try:
+                    index = self.wordlist.index(word)
+                    list_index_bi.append(bin(index)[2:].zfill(11))
+                except ValueError:
+                    raise InvalidSeedException(f"Word '{word}' not in wordlist")
 
             bin_mnemonic = "".join(list_index_bi)
+            len_ = len(bin_mnemonic)
 
-            # checksum
-            checksum = bin_mnemonic[-4:]
+            # Validate length and determine checksum bits
+            checksum_bits = None
+            if len_ == 132:  # 12 words
+                checksum_bits = 4
+            elif len_ == 165:  # 15 words
+                checksum_bits = 5
+            elif len_ == 198:  # 18 words
+                checksum_bits = 6
+            elif len_ == 231:  # 21 words
+                checksum_bits = 7
+            elif len_ == 264:  # 24 words
+                checksum_bits = 8
+            else:
+                raise InvalidSeedException("Invalid mnemonic length")
 
-            decimal_mnemonic = int(bin_mnemonic[:-4], 2)
+            # Extract checksum
+            checksum = bin_mnemonic[-checksum_bits:]
 
-            n = len(bin_mnemonic)
-            hexa_mnemonic = hex(decimal_mnemonic)[2:].zfill((n - 4) // 4)
-
-            if len(hexa_mnemonic) % 2 != 0:  # If the length is odd, add a leading zero
-                hexa_mnemonic = "0" + hexa_mnemonic
+            # Convert entropy to bytes
+            entropy_bits = bin_mnemonic[:-checksum_bits]
+            # Ensure we have complete bytes
+            if len(entropy_bits) % 8 != 0:
+                raise InvalidSeedException("Invalid entropy length")
 
             # Convert to bytes
-            # Convert the hexadecimal mnemonic to bytes
-            byte_mnemonic = bytes.fromhex(hexa_mnemonic)
+            entropy_int = int(entropy_bits, 2)
+            entropy_bytes = entropy_int.to_bytes(
+                len(entropy_bits) // 8, byteorder="big"
+            )
 
-            # Hash i conversio a binari
-            hash_object = hashlib.sha256()
-            hash_object.update(byte_mnemonic)
-            hexa_hashmnemonic = hash_object.hexdigest()
-            bin_hashmnemonic = bin(int(hexa_hashmnemonic, 16))[2:].zfill(256)
+            # Compute SHA256 hash
+            hash_bytes = hashlib.sha256(entropy_bytes).digest()
+            hash_int = int.from_bytes(hash_bytes, byteorder="big")
+            computed_checksum = bin(hash_int)[2:].zfill(256)[:checksum_bits]
 
-            checksum_revised = bin_hashmnemonic[:4]
+            if checksum != computed_checksum:
+                logger.debug(
+                    "Checksum mismatch: expected %s, got %s",
+                    checksum,
+                    computed_checksum,
+                )
+                raise InvalidSeedException("Checksum validation failed")
 
-            if not checksum == checksum_revised:
-                raise InvalidSeedException(repr(e))
+            return True
 
+        except InvalidSeedException:
+            raise
         except Exception as e:
-            logger.info(repr(e), exc_info=True)
-            raise InvalidSeedException(repr(e))
+            logger.exception("Unexpected error during validation")
+            raise InvalidSeedException(f"Validation error: {str(e)}")
 
     def generate_seed(self) -> bytes:
         hexa_seed = bf.seed_generator(self.mnemonic_str, self.passphrase)

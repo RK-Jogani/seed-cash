@@ -182,7 +182,7 @@ class ToolsCoinFlipEntryScreen(KeyboardScreen):
         self.components.append(
             TextArea(
                 # TRANSLATOR_NOTE: How we call the "front" side result during a coin toss.
-                text="Introduce the last 7 bits of entropy",
+                text=f"Introduce the last {self.return_after_n_chars} bits of entropy.",
                 screen_y=GUIConstants.COMPONENT_PADDING,
             )
         )
@@ -190,7 +190,7 @@ class ToolsCoinFlipEntryScreen(KeyboardScreen):
 
 @dataclass
 class ToolsCalcFinalWordScreen(ButtonListScreen):
-    selected_final_word: str = None
+    num_checksum_bits: int = None
     selected_final_bits: str = None
     checksum_bits: str = None
     actual_final_word: str = None
@@ -203,13 +203,13 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
         text_y = GUIConstants.TOP_NAV_HEIGHT
 
         your_input = TextArea(
-            text=f"Your input: {self.selected_final_bits}_ _ _ _",
+            text=f"Your input: {self.selected_final_bits} {"_ " * self.num_checksum_bits}",
             screen_x=text_x,
             screen_y=text_y,
         )
 
         checksum = TextArea(
-            text=f"Checksum: _ _ _ _{self.checksum_bits}",
+            text=f"Checksum: {"_ " * (11 - self.num_checksum_bits)} {self.checksum_bits}",
             screen_x=text_x,
             screen_y=text_y
             + GUIConstants.BUTTON_FONT_SIZE

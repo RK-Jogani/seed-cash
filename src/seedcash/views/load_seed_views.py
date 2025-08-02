@@ -30,28 +30,70 @@ Seed Cash Updated Code
 
 # First Load Seed View
 class SeedCashLoadSeedView(View):
-    BACK = ButtonOption("BACK", SeedCashIconsConstants.BACK)
-    NEXT = ButtonOption("NEXT", SeedCashIconsConstants.CHEVRON_RIGHT)
-    label_text: str = (
-        "Enter your mnemonic seed word by word and passphrase.\n Remember that Seedcash only supports 12 seed words."
-    )
+    TWELVE = ButtonOption("12 Words")
+    FIFTEEN = ButtonOption("15 Words")
+    EIGHTEEN = ButtonOption("18 Words")
+    TWENTY_ONE = ButtonOption("21 Words")
+    TWENTY_FOUR = ButtonOption("24 Words")
+
+    def __init__(self, is_random_seed: bool = False, is_calc_final_word: bool = False):
+        super().__init__()
+        self.is_random_seed = is_random_seed
+        self.is_calc_final_word = is_calc_final_word
 
     def run(self):
         from seedcash.gui.screens.load_seed_screens import SeedCashLoadSeedScreen
 
-        button_data = [self.NEXT, self.BACK]
+        button_data = [
+            self.TWELVE,
+            self.FIFTEEN,
+            self.EIGHTEEN,
+            self.TWENTY_ONE,
+            self.TWENTY_FOUR,
+        ]
+
+        button_values = [
+            12,
+            15,
+            18,
+            21,
+            24,
+        ]
 
         selected_menu_num = self.run_screen(
             SeedCashLoadSeedScreen,
+            title=_("Choose The Length Of Your Mnemonic"),
+            button_data=button_data,
         )
 
-        if button_data[selected_menu_num] == self.BACK:
+        if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
 
-        if button_data[selected_menu_num] == self.NEXT:
+        if self.is_random_seed:
+            # If the user wants a random seed, we generate it here.
+            from seedcash.views.generate_seed_views import (
+                SeedCashGenerateSeedRandomView,
+            )
+
+            return Destination(
+                SeedCashGenerateSeedRandomView,
+                view_args=dict(num_words=button_values[selected_menu_num]),
+            )
+        else:
+            # If the user wants to enter a seed, we set the mnemonic length.
+            self.controller.storage.set_mnemonic_length(
+                button_values[selected_menu_num]
+            )
+
             from seedcash.views.load_seed_views import SeedMnemonicEntryView
 
-            return Destination(SeedMnemonicEntryView)
+            return Destination(
+                SeedMnemonicEntryView,
+                view_args={
+                    "cur_word_index": 0,
+                    "is_calc_final_word": self.is_calc_final_word,
+                },
+            )
 
         return Destination(BackStackView)
 
@@ -421,7 +463,7 @@ class SeedCashQRView(View):
         self.address = address
 
         # Add delay to allow QR code to be displayed
-        time.sleep(0.4)
+        time.sleep(0.3)
 
     def run(self):
 
@@ -446,7 +488,7 @@ class SeedCashAddressView(View):
         self.address = address
 
         # Add delay to allow address to be displayed
-        time.sleep(0.4)
+        time.sleep(0.3)
 
     def run(self):
 

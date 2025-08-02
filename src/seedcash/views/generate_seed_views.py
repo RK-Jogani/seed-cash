@@ -23,14 +23,14 @@ Seed Cash Updated Code
 # First Generate Seed View
 class SeedCashGenerateSeedView(View):
     RANDOM_SEED = ButtonOption("Random Seed")
-    TWELVE_WORDS_SEED = ButtonOption("Calculate 12 Words Seed")
+    CALCULATE_SEED = ButtonOption("Calculate Seed")
 
     def run(self):
         from seedcash.gui.screens.generate_seed_screens import (
             SeedCashGenerateSeedScreen,
         )
 
-        button_data = [self.RANDOM_SEED, self.TWELVE_WORDS_SEED]
+        button_data = [self.RANDOM_SEED, self.CALCULATE_SEED]
 
         selected_menu_num = self.run_screen(
             SeedCashGenerateSeedScreen,
@@ -41,23 +41,32 @@ class SeedCashGenerateSeedView(View):
         if selected_menu_num == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
 
-        if button_data[selected_menu_num] == self.TWELVE_WORDS_SEED:
-            from seedcash.views.load_seed_views import SeedMnemonicEntryView
+        if button_data[selected_menu_num] == self.CALCULATE_SEED:
+            from seedcash.views.load_seed_views import SeedCashLoadSeedView
 
             return Destination(
-                SeedMnemonicEntryView, view_args=dict(is_calc_final_word=True)
+                SeedCashLoadSeedView, view_args=dict(is_calc_final_word=True)
             )
         elif button_data[selected_menu_num] == self.RANDOM_SEED:
+            from seedcash.views.load_seed_views import SeedCashLoadSeedView
 
-            return Destination(SeedCashGenerateSeedRandomView)
+            return Destination(
+                SeedCashLoadSeedView, view_args=dict(is_random_seed=True)
+            )
 
         return Destination(BackStackView)
 
 
 class SeedCashGenerateSeedRandomView(View):
+    """View to generate a random seed and display the words."""
+
+    def __init__(self, num_words: int = 12):
+        super().__init__()
+        self.num_words = num_words
+
     def run(self):
         # Generate a random mnemonic
-        mnemonic = bf.generate_random_seed()
+        mnemonic = bf.generate_random_seed(num_words=self.num_words)
         from seedcash.views.generate_seed_views import ShowWordsView
 
         return Destination(ShowWordsView, view_args={"mnemonic": mnemonic})
@@ -96,10 +105,10 @@ class ToolsCalcFinalWordCoinFlipsView(View):
 
         mnemonic_length = len(self.controller.storage._mnemonic)
 
-        total_flips = 7
+        total_bits = 11 - (mnemonic_length // 3)
 
         ret_val = ToolsCoinFlipEntryScreen(
-            return_after_n_chars=total_flips,
+            return_after_n_chars=total_bits,
         ).display()
 
         if ret_val == RET_CODE__BACK_BUTTON:
@@ -107,25 +116,24 @@ class ToolsCalcFinalWordCoinFlipsView(View):
 
         else:
             return Destination(
-                ToolsCalcFinalWordShowFinalWordView, view_args=dict(coin_flips=ret_val)
+                ToolsCalcFinalWordShowFinalWordView, view_args=dict(last_bits=ret_val)
             )
 
 
 class ToolsCalcFinalWordShowFinalWordView(View):
     CONFIRM = ButtonOption("Confirm")
 
-    def __init__(self, coin_flips: str = None):
+    def __init__(self, last_bits: str = None):
         super().__init__()
 
         wordlist = Seed.get_wordlist()
         # Prep the user's selected word / coin flips and the actual final word for
         # the display.
 
-        self.selected_final_word = None
-        self.selected_final_bits = coin_flips
+        self.selected_final_bits = last_bits
 
         final_mnemonic = bf.get_mnemonic(
-            self.controller.storage._mnemonic[:-1], coin_flips
+            self.controller.storage._mnemonic[:-1], last_bits
         )
 
         # Update our pending mnemonic with the real final word
@@ -136,9 +144,9 @@ class ToolsCalcFinalWordShowFinalWordView(View):
 
         # And grab the actual final word's checksum bits
         self.actual_final_word = self.controller.storage._mnemonic[-1]
-        num_checksum_bits = 4 if mnemonic_length == 12 else 8
+        self.num_checksum_bits = mnemonic_length // 3
         self.checksum_bits = format(wordlist.index(self.actual_final_word), "011b")[
-            -num_checksum_bits:
+            -self.num_checksum_bits :
         ]
 
     def run(self):
@@ -149,7 +157,7 @@ class ToolsCalcFinalWordShowFinalWordView(View):
         selected_menu_num = self.run_screen(
             ToolsCalcFinalWordScreen,
             button_data=button_data,
-            selected_final_word=self.selected_final_word,
+            num_checksum_bits=self.num_checksum_bits,
             selected_final_bits=self.selected_final_bits,
             checksum_bits=self.checksum_bits,
             actual_final_word=self.actual_final_word,
