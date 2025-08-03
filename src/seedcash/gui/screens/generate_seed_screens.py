@@ -203,13 +203,17 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
         text_y = GUIConstants.TOP_NAV_HEIGHT
 
         your_input = TextArea(
-            text=f"Your input: {self.selected_final_bits} {"_ " * self.num_checksum_bits}",
+            text="Your input: {} {}".format(
+                self.selected_final_bits, "_ " * self.num_checksum_bits
+            ),
             screen_x=text_x,
             screen_y=text_y,
         )
 
         checksum = TextArea(
-            text=f"Checksum: {"_ " * (11 - self.num_checksum_bits)} {self.checksum_bits}",
+            text="Checksum: {} {}".format(
+                "_ " * (11 - self.num_checksum_bits), self.checksum_bits
+            ),
             screen_x=text_x,
             screen_y=text_y
             + GUIConstants.BUTTON_FONT_SIZE
