@@ -6,10 +6,10 @@ import time
 from dataclasses import dataclass
 from gettext import gettext as _
 
-from seedcash.gui.components import Fonts, GUIConstants, load_image
+from seedcash.gui.components import TextArea, GUIConstants, load_image
 from seedcash.gui.screens.screen import BaseScreen
 from seedcash.models.settings import Settings
-from seedcash.models.settings_definition import SettingsConstants
+from seedcash.models.threads import BaseThread
 from seedcash.views.view import View
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class ScreensaverScreen(LogoScreen):
 
         # Paste the logo in a bigger image that is the canvas + the logo dims (half the
         # logo will render off the canvas at each edge).
-        self.image = Image.new(
+        self.logo_image = Image.new(
             "RGB",
             (
                 self.renderer.canvas_width + self.logo.width,
@@ -97,20 +97,17 @@ class ScreensaverScreen(LogoScreen):
             (0, 0, 0),
         )
 
-        # Place the logo centered on the larger image
-        logo_x = int((self.image.width - self.logo.width) / 2)
-        logo_y = int((self.image.height - self.logo.height) / 2)
-        self.image.paste(self.logo, (logo_x, logo_y))
+        # paste image
+        self.image = self.logo_image
 
-        self.min_coords = (0, 0)
-        self.max_coords = (self.renderer.canvas_width, self.renderer.canvas_height)
+        # Place the logo centered on the larger image
+        self.logo_x = int((self.image.width - self.logo.width) / 2)
+        self.logo_y = int((self.image.height - self.logo.height) / 2)
+        self.image.paste(self.logo, (self.logo_x, self.logo_y))
 
         # Update our first rendering position so we're centered
         self.cur_x = int(self.logo.width / 2)
         self.cur_y = int(self.logo.height / 2)
-
-        self.increment_x = self.rand_increment()
-        self.increment_y = self.rand_increment()
 
         self._is_running = False
         self.last_screen = None
@@ -119,17 +116,11 @@ class ScreensaverScreen(LogoScreen):
     def is_running(self):
         return self._is_running
 
-    def rand_increment(self):
-        max_increment = 10.0
-        min_increment = 1.0
-        increment = random.uniform(min_increment, max_increment)
-        if random.uniform(-1.0, 1.0) < 0.0:
-            return -1.0 * increment
-        return increment
-
     def start(self):
         if self.is_running:
             return
+
+        self.start_time = time.time()
 
         self._is_running = True
 
@@ -144,6 +135,13 @@ class ScreensaverScreen(LogoScreen):
                     if self.buttons.has_any_input() or self.buttons.override_ind:
                         break
 
+                    # if it's 5 mins since the screensaver started, shutdown
+                    if (time.time() - self.start_time) > 5 * 60:  # five mintues
+                        logger.info("Screensaver timeout reached; shutting down.")
+                        self.shutdown()
+                        continue
+
+                    self.image = self.logo_image
                     # Must crop the image to the exact display size
                     crop = self.image.crop(
                         (
@@ -154,32 +152,6 @@ class ScreensaverScreen(LogoScreen):
                         )
                     )
                     self.renderer.disp.show_image(crop, 0, 0)
-
-                    self.cur_x += self.increment_x
-                    self.cur_y += self.increment_y
-
-                    # At each edge bump, calculate a new random rate of change for that axis
-                    if self.cur_x < self.min_coords[0]:
-                        self.cur_x = self.min_coords[0]
-                        self.increment_x = self.rand_increment()
-                        if self.increment_x < 0.0:
-                            self.increment_x *= -1.0
-                    elif self.cur_x > self.max_coords[0]:
-                        self.cur_x = self.max_coords[0]
-                        self.increment_x = self.rand_increment()
-                        if self.increment_x > 0.0:
-                            self.increment_x *= -1.0
-
-                    if self.cur_y < self.min_coords[1]:
-                        self.cur_y = self.min_coords[1]
-                        self.increment_y = self.rand_increment()
-                        if self.increment_y < 0.0:
-                            self.increment_y *= -1.0
-                    elif self.cur_y > self.max_coords[1]:
-                        self.cur_y = self.max_coords[1]
-                        self.increment_y = self.rand_increment()
-                        if self.increment_y > 0.0:
-                            self.increment_y *= -1.0
 
             except KeyboardInterrupt as e:
                 # Exit triggered; close gracefully
@@ -196,3 +168,66 @@ class ScreensaverScreen(LogoScreen):
 
     def stop(self):
         self._is_running = False
+
+    def shutdown(self):
+        """
+        Shuts down the device after a delay, allowing the user to cancel.
+        """
+        start = time.time()
+        self.image = []
+        self.shutdown_is = True
+
+        try:
+            # Display a countdown timer
+            while True:
+                counter = 30 - int(time.time() - start)
+                time.sleep(1)
+                warning = TextArea(
+                    text=_(
+                        "Device will shut down in {} seconds\nPress any button to cancel"
+                    ).format(counter),
+                    screen_y=2 * GUIConstants.TOP_NAV_HEIGHT,
+                )
+
+                self.clear_screen()
+                warning.render()
+                self.renderer.show_image()
+                counter -= 1
+
+                if self.buttons.has_any_input():
+                    break
+
+                if counter < 0:
+                    thread = ScreensaverScreen.DoResetThread()
+                    thread.start()
+
+        except KeyboardInterrupt as e:
+            # Exit triggered; close gracefully
+            logger.info("Shutting down Screensaver")
+
+            # Have to let the interrupt bubble up to exit the main app
+            raise e
+        finally:
+            self._is_running = False
+
+            # Restore the original screen
+            self.renderer.show_image(self.last_screen)
+
+    class DoResetThread(BaseThread):
+        def run(self):
+            import time
+            from subprocess import call
+
+            # Give the screen just enough time to display the reset message before
+            # exiting.
+            time.sleep(0.25)
+
+            # Kill the SeedSigner process; Running the process again.
+            # `.*` is a wildcard to detect either `python`` or `python3`.
+            if Settings.HOSTNAME == Settings.SEEDSIGNER_OS:
+                call("kill $(pidof python*) & python /opt/src/main.py", shell=True)
+            else:
+                call(
+                    "kill $(ps aux | grep '[p]ython.*main.py' | awk '{print $2}')",
+                    shell=True,
+                )

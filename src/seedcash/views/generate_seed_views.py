@@ -34,7 +34,6 @@ class SeedCashGenerateSeedView(View):
 
         selected_menu_num = self.run_screen(
             SeedCashGenerateSeedScreen,
-            title="Generate Seed",
             button_data=button_data,
         )
 

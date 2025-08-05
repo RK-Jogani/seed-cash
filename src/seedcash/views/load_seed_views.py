@@ -62,7 +62,6 @@ class SeedCashLoadSeedView(View):
 
         selected_menu_num = self.run_screen(
             SeedCashLoadSeedScreen,
-            title=_("Choose The Length Of Your Mnemonic"),
             button_data=button_data,
         )
 
