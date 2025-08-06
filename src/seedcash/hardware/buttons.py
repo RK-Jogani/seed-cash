@@ -90,6 +90,9 @@ class HardwareButtons(Singleton):
 
             cur_time = int(time.time() * 1000)
             if cur_time - self.last_input_time > controller.screensaver_activation_ms and not controller.is_screensaver_running:
+
+                # start the start_screensaver
+                controller.start_screensaver()
                 
                 # We're back. Update last_input_time to now.
                 self.update_last_input_time()
