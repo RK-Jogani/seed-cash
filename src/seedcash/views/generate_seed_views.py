@@ -23,7 +23,7 @@ Seed Cash Updated Code
 # First Generate Seed View
 class SeedCashGenerateSeedView(View):
     RANDOM_SEED = ButtonOption("Random Seed")
-    CALCULATE_SEED = ButtonOption("Calculate Seed")
+    CALCULATE_SEED = ButtonOption("Calculate Last Word")
 
     def run(self):
         from seedcash.gui.screens.generate_seed_screens import (
