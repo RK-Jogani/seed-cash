@@ -217,15 +217,12 @@ class ScreensaverScreen(LogoScreen):
         def run(self):
             import time
             from subprocess import call
-
             # Give the screen just enough time to display the reset message before
             # exiting.
             time.sleep(0.25)
 
-            # Kill the SeedSigner process; Running the process again.
-            # `.*` is a wildcard to detect either `python`` or `python3`.
             if Settings.HOSTNAME == Settings.SEEDSIGNER_OS:
-                call("kill $(pidof python*) & python /opt/src/main.py", shell=True)
+                call("kill $(pidof python*)", shell=True)
             else:
                 call(
                     "kill $(ps aux | grep '[p]ython.*main.py' | awk '{print $2}')",
