@@ -204,7 +204,7 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
 
         your_input = TextArea(
             text="Your input: {} {}".format(
-                self.selected_final_bits, "_ " * self.num_checksum_bits
+                self.selected_final_bits, "- " * self.num_checksum_bits
             ),
             screen_x=text_x,
             screen_y=text_y,
@@ -212,7 +212,7 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
 
         checksum = TextArea(
             text="Checksum: {} {}".format(
-                "_ " * (11 - self.num_checksum_bits), self.checksum_bits
+                "- " * (11 - self.num_checksum_bits), self.checksum_bits
             ),
             screen_x=text_x,
             screen_y=text_y

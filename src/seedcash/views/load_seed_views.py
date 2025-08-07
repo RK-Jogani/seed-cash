@@ -11,7 +11,6 @@ from seedcash.gui.screens import (
 )
 from seedcash.gui.screens.screen import ButtonOption
 from seedcash.models.seed import Seed
-from seedcash.models.settings import Settings, SettingsConstants
 from seedcash.views.view import (
     View,
     Destination,
@@ -94,8 +93,6 @@ class SeedCashLoadSeedView(View):
                 },
             )
 
-        return Destination(BackStackView)
-
 
 # Second Load Seed View for input
 class SeedMnemonicEntryView(View):
@@ -107,6 +104,7 @@ class SeedMnemonicEntryView(View):
         self.cur_word = self.controller.storage.get_mnemonic_word(cur_word_index)
         # for the generation of seed
         self.is_calc_final_word = is_calc_final_word
+        # Save the view
 
     def run(self):
         ret = self.run_screen(
@@ -120,7 +118,16 @@ class SeedMnemonicEntryView(View):
         )
 
         if ret == RET_CODE__BACK_BUTTON:
-            self.controller.storage.discard_mnemonic()
+            # remove the cur_word
+            self.controller.storage.update_mnemonic(None, self.cur_word_index)
+
+            if (
+                self.cur_word_index == 0
+                and self.controller.storage.mnemonic
+                != [None] * self.controller.storage.mnemonic_length
+            ):
+                return Destination(SeedMnemonicInvalidView, skip_current_view=True)
+
             return Destination(BackStackView)
 
         # ret will be our new mnemonic word
@@ -173,6 +180,8 @@ class SeedMnemonicEntryView(View):
                     self.controller.storage.convert_mnemonic_to_seed()
 
                 except Exception as e:
+                    for i in range(self.controller.storage.mnemonic_length):
+                        self.controller.back_stack.pop()
 
                     return Destination(SeedMnemonicInvalidView)
 
@@ -201,7 +210,11 @@ class SeedMnemonicInvalidView(View):
         )
 
         if button_data[selected_menu_num] == self.EDIT:
-            return Destination(SeedMnemonicEntryView, view_args={"cur_word_index": 0})
+            return Destination(
+                SeedMnemonicEntryView,
+                view_args={"cur_word_index": 0},
+                skip_current_view=True,
+            )
 
         elif button_data[selected_menu_num] == self.DISCARD:
             self.controller.storage.discard_mnemonic()
