@@ -223,7 +223,4 @@ class ScreensaverScreen(LogoScreen):
             # exiting.
             time.sleep(0.25)
 
-            call(
-                "kill $(ps aux | grep 'python.*main.py' | awk '{print $2}')",
-                shell=True,
-            )
+            call("pkill -f python3", shell=True)
