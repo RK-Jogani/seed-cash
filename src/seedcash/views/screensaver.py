@@ -197,9 +197,10 @@ class ScreensaverScreen(LogoScreen):
                 if self.buttons.has_any_input():
                     break
 
-                if counter < 0:
+                if counter <= 0:
                     thread = ScreensaverScreen.DoResetThread()
                     thread.start()
+                    break
 
         except KeyboardInterrupt as e:
             # Exit triggered; close gracefully
@@ -217,14 +218,12 @@ class ScreensaverScreen(LogoScreen):
         def run(self):
             import time
             from subprocess import call
+
             # Give the screen just enough time to display the reset message before
             # exiting.
             time.sleep(0.25)
 
-            if Settings.HOSTNAME == Settings.SEEDSIGNER_OS:
-                call("kill $(pidof python*)", shell=True)
-            else:
-                call(
-                    "kill $(ps aux | grep '[p]ython.*main.py' | awk '{print $2}')",
-                    shell=True,
-                )
+            call(
+                "kill $(ps aux | grep 'python.*main.py' | awk '{print $2}')",
+                shell=True,
+            )
