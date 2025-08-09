@@ -197,10 +197,10 @@ class ScreensaverScreen(LogoScreen):
                     break
 
                 if counter <= 0:
-                    thread = ScreensaverScreen.DoResetThread()
-                    thread.start()
                     self._is_running = False
                     self.clear_screen()
+                    thread = ScreensaverScreen.DoResetThread()
+                    thread.start()
 
         except KeyboardInterrupt as e:
             # Exit triggered; close gracefully
