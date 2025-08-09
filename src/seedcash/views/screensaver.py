@@ -223,4 +223,4 @@ class ScreensaverScreen(LogoScreen):
             # exiting.
             time.sleep(0.25)
 
-            call("pkill -f python3", shell=True)
+            os.system("kill -9 $(ps | grep '[p]ython3' | awk '{print $1}')")
