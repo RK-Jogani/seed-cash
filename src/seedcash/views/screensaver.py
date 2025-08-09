@@ -136,10 +136,10 @@ class ScreensaverScreen(LogoScreen):
                         break
 
                     # if it's 5 mins since the screensaver started, shutdown
-                    if (time.time() - self.start_time) > 5 * 60:  # five mintues
+                    if (time.time() - self.start_time) > 1 * 60:  # five mintues
                         logger.info("Screensaver timeout reached; shutting down.")
                         self.shutdown()
-                        continue
+                        return
 
                     self.image = self.logo_image
                     # Must crop the image to the exact display size
@@ -201,6 +201,7 @@ class ScreensaverScreen(LogoScreen):
                     self.clear_screen()
                     thread = ScreensaverScreen.DoResetThread()
                     thread.start()
+                    return
 
         except KeyboardInterrupt as e:
             # Exit triggered; close gracefully
