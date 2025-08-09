@@ -175,11 +175,10 @@ class ScreensaverScreen(LogoScreen):
         """
         start = time.time()
         self.image = []
-        self.shutdown_is = True
 
         try:
             # Display a countdown timer
-            while True:
+            while self._is_running:
                 counter = 30 - int(time.time() - start)
                 time.sleep(1)
                 warning = TextArea(
@@ -200,7 +199,8 @@ class ScreensaverScreen(LogoScreen):
                 if counter <= 0:
                     thread = ScreensaverScreen.DoResetThread()
                     thread.start()
-                    break
+                    self._is_running = False
+                    self.clear_screen()
 
         except KeyboardInterrupt as e:
             # Exit triggered; close gracefully
