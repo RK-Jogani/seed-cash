@@ -4,9 +4,9 @@ import time
 from dataclasses import dataclass
 from gettext import gettext as _
 
-from seedcash.gui.components import TextArea, GUIConstants, load_image
+from seedcash.gui.components import load_image
 from seedcash.gui.screens.screen import BaseScreen
-from seedcash.views.view import View, Destination, PowerOffView
+from seedcash.views.view import View
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +134,7 @@ class ScreensaverScreen(LogoScreen):
                     # if it's 5 mins since the screensaver started, shutdown
                     if (time.time() - self.start_time) > 1 * 60:  # five mintues
                         logger.info("Screensaver timeout reached; shutting down.")
-                        self.shutdown()
-                        logger.info("Shutdown returned", self._is_running)
-                        return Destination(PowerOffView).run()
+                        return "SHUTDOWN"
 
                     self.image = self.logo_image
                     # Must crop the image to the exact display size
@@ -157,55 +155,6 @@ class ScreensaverScreen(LogoScreen):
                 # Have to let the interrupt bubble up to exit the main app
                 raise e
 
-            finally:
-                self._is_running = False
-
-                # Restore the original screen
-                self.renderer.show_image(self.last_screen)
-
     def stop(self):
         self._is_running = False
-
-    def shutdown(self):
-        """
-        Shuts down the device after a delay, allowing the user to cancel.
-        """
-        start = time.time()
-        self.image = []
-
-        try:
-            # Display a countdown timer
-            while self._is_running:
-                counter = 30 - int(time.time() - start)
-                time.sleep(1)
-                warning = TextArea(
-                    text=_(
-                        "Device will shut down in {} seconds\nPress any button to cancel"
-                    ).format(counter),
-                    screen_y=2 * GUIConstants.TOP_NAV_HEIGHT,
-                )
-
-                self.clear_screen()
-                warning.render()
-                self.renderer.show_image()
-                counter -= 1
-
-                if self.buttons.has_any_input():
-                    break
-
-                if counter <= 0:
-                    self._is_running = False
-                    self.clear_screen()
-                    return
-
-        except KeyboardInterrupt as e:
-            # Exit triggered; close gracefully
-            logger.info("Shutting down Screensaver")
-
-            # Have to let the interrupt bubble up to exit the main app
-            raise e
-        finally:
-            self._is_running = False
-
-            # Restore the original screen
-            self.renderer.show_image(self.last_screen)
+        self.renderer.show_image(self.last_screen)

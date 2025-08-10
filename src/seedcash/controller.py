@@ -12,7 +12,7 @@ from seedcash.models.singleton import Singleton
 from seedcash.models.threads import BaseThread
 from seedcash.views.screensaver import ScreensaverScreen
 from seedcash.hardware.buttons import HardwareButtons
-from seedcash.views.view import Destination
+from seedcash.views.view import Destination, PowerOffView
 
 
 logger = logging.getLogger(__name__)
@@ -360,24 +360,25 @@ class Controller(Singleton):
         return self.screensaver is not None and self.screensaver.is_running
 
     def start_screensaver(self):
-        # If a toast is running, tell it to give up the Renderer.lock; it will then
-        # block until the screensaver is done, at which point the toast can re-acquire
-        # the Renderer.lock and resume where it left off.
+        # If a toast is running, exiting it will allow the screensaver to run.
         if self.toast_notification_thread and self.toast_notification_thread.is_alive():
             logger.info(
-                f"Controller: settings toggle_render_lock for {self.toast_notification_thread.__class__.__name__}"
+                f"Screensaver: stopping {self.toast_notification_thread.__class__.__name__}"
             )
-            self.toast_notification_thread.toggle_renderer_lock()
+            self.toast_notification_thread.stop()
 
-        logger.info("Controller: Starting screensaver")
         if not self.screensaver:
             # Do a lazy/late import and instantiation to reduce Controller initial startup time
-
             self.screensaver = ScreensaverScreen(HardwareButtons.get_instance())
 
         # Start the screensaver, but it will block until it can acquire the Renderer.lock.
-        self.screensaver.start()
-        logger.info("Controller: Screensaver started")
+        ret = self.screensaver.start()
+
+        if ret == "SHUTDOWN":
+            logger.info("Controller: Screensaver shutdown requested")
+            return Destination(PowerOffView).run()
+        else:
+            logger.info("Controller: Screensaver Ended")
 
     def reset_screensaver_timeout(self):
         """

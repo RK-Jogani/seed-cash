@@ -942,51 +942,52 @@ class ErrorScreen(WarningScreen):
 
 
 @dataclass
-class ResetScreen(BaseTopNavScreen):
-    def __post_init__(self):
-        self.title = _("Restarting")
-        self.show_back_button = False
-        super().__post_init__()
-
-        self.components.append(
-            TextArea(
-                text=_("SeedCash is restarting.\n\nAll in-memory data will be wiped."),
-                screen_y=self.top_nav.height,
-                height=self.canvas_height - self.top_nav.height,
-            )
-        )
-
-
-@dataclass
 class PowerOffScreen(BaseTopNavScreen):
     def __post_init__(self):
         self.title = _("Powering Off")
         self.show_back_button = False
         super().__post_init__()
 
-        self.components.append(
-            TextArea(
-                text=_("Please wait about 30 seconds before disconnecting power."),
-                screen_y=self.top_nav.height,
-                height=self.canvas_height - self.top_nav.height,
-            )
-        )
+    def _run(self):
+        self.clear_screen()
+        """
+        Shuts down the device after a delay, allowing the user to cancel.
+        """
+        start = time.time()
+        self.counter = 30
+        self.image = []
+        self.buttons = HardwareButtons.get_instance()
 
+        try:
+            # Display a countdown timer
+            while self.counter > 0:
+                self.counter = 30 - int(time.time() - start)
+                time.sleep(1)
+                warning = TextArea(
+                    text=_(
+                        "Device will shut down in {} seconds\nPress any button to cancel"
+                    ).format(self.counter),
+                    screen_y=2 * GUIConstants.TOP_NAV_HEIGHT,
+                )
 
-@dataclass
-class PowerOffNotRequiredScreen(BaseTopNavScreen):
-    def __post_init__(self):
-        self.title = _("Powering Off")
-        self.show_back_button = True
-        super().__post_init__()
+                # Clear previous warning and add new one
+                self.components = [
+                    comp for comp in self.components if not isinstance(comp, TextArea)
+                ]
+                self.components.append(warning)
 
-        self.components.append(
-            TextArea(
-                text=_("Device will safely power off at any time."),
-                screen_y=self.top_nav.height,
-                height=self.canvas_height - self.top_nav.height,
-            )
-        )
+                # Use the proper rendering method with lock
+                with self.renderer.lock:
+                    self._render()
+                    self.renderer.show_image()
+
+                if self.buttons.has_any_input():
+                    return RET_CODE__BACK_BUTTON
+            return
+        except KeyboardInterrupt as e:
+            # Exit triggered; close gracefully
+            logger.info("Shutting down Screensaver")
+            raise e
 
 
 @dataclass

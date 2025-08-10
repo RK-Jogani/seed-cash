@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from gettext import gettext as _
 from typing import Type
@@ -5,6 +6,8 @@ from seedcash.models.threads import BaseThread
 
 from seedcash.gui.components import (
     SeedCashIconsConstants,
+    TextArea,
+    GUIConstants,
 )
 from seedcash.gui.screens import RET_CODE__POWER_BUTTON, RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import (
@@ -228,17 +231,35 @@ class MainMenuView(View):
         elif button_data[selected_menu_num] == "Power Off":
             return Destination(PowerOffView)
 
-            return Destination(SeedCashGenerateSeedView)
-
 
 class PowerOffView(View):
-    def run(self):
-        from seedcash.gui.screens.screen import PowerOffNotRequiredScreen
+    def __init__(self):
+        super().__init__()
 
-        thread = PowerOffView.DoPowerOffThread()
+    def run(self):
+        from seedcash.gui.screens.screen import PowerOffScreen
+
+        ret = self.run_screen(PowerOffScreen)
+
+        if ret == RET_CODE__BACK_BUTTON:
+            return Destination(MainMenuView, clear_history=True)
+        else:
+            return Destination(BlackView)
+
+
+class BlackView(View):
+    """
+    A View that displays a black screen.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        self.renderer.display_blank_screen()
+        time.sleep(5)
+        thread = BlackView.DoPowerOffThread()
         thread.start()
-        self.run_screen(PowerOffNotRequiredScreen)
-        return Destination(BackStackView)
 
     class DoPowerOffThread(BaseThread):
         def run(self):
@@ -246,8 +267,7 @@ class PowerOffView(View):
             from subprocess import call
 
             # Give the screen just enough time to display the reset message before
-            # exiting.
-            time.sleep(0.25)
+            time.sleep(1)
 
             # call the system poweroff command
             call("poweroff", shell=True)
