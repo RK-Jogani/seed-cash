@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from gettext import gettext as _
 from typing import Type
+from seedcash.models.threads import BaseThread
 
 from seedcash.gui.components import (
     SeedCashIconsConstants,
@@ -221,6 +222,7 @@ class MainMenuView(View):
 
         elif button_data[selected_menu_num] == "Settings":
             from seedcash.views.setting_views import SettingOptionsView
+
             return Destination(SettingOptionsView)
 
         elif button_data[selected_menu_num] == "Power Off":
@@ -233,14 +235,29 @@ class PowerOffView(View):
     def run(self):
         from seedcash.gui.screens.screen import PowerOffNotRequiredScreen
 
+        thread = PowerOffView.DoPowerOffThread()
+        thread.start()
         self.run_screen(PowerOffNotRequiredScreen)
         return Destination(BackStackView)
 
+    class DoPowerOffThread(BaseThread):
+        def run(self):
+            import time
+            from subprocess import call
 
-@dataclass
-class SettingsMenuView(View):
-    def run(self):
-        pass
+            # Give the screen just enough time to display the reset message before
+            # exiting.
+            time.sleep(0.25)
+
+            # Kill the SeedSigner process; Running the process again.
+            # `.*` is a wildcard to detect either `python`` or `python3`.
+            if Settings.HOSTNAME == Settings.SEEDSIGNER_OS:
+                call("kill $(pidof python*)", shell=True)
+            else:
+                call(
+                    "kill $(ps aux | grep '[p]ython.*main.py' | awk '{print $2}')",
+                    shell=True,
+                )
 
 
 @dataclass
