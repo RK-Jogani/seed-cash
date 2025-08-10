@@ -249,15 +249,8 @@ class PowerOffView(View):
             # exiting.
             time.sleep(0.25)
 
-            # Kill the SeedSigner process; Running the process again.
-            # `.*` is a wildcard to detect either `python`` or `python3`.
-            if Settings.HOSTNAME == Settings.SEEDSIGNER_OS:
-                call("kill $(pidof python*)", shell=True)
-            else:
-                call(
-                    "kill $(ps aux | grep '[p]ython.*main.py' | awk '{print $2}')",
-                    shell=True,
-                )
+            # call the system poweroff command
+            call("poweroff", shell=True)
 
 
 @dataclass
