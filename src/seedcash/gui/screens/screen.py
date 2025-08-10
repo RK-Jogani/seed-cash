@@ -976,13 +976,13 @@ class PowerOffScreen(BaseTopNavScreen):
 @dataclass
 class PowerOffNotRequiredScreen(BaseTopNavScreen):
     def __post_init__(self):
-        self.title = _("Just Unplug It")
+        self.title = _("Powering Off")
         self.show_back_button = True
         super().__post_init__()
 
         self.components.append(
             TextArea(
-                text=_("It is safe to disconnect power at any time."),
+                text=_("Device will safely power off at any time."),
                 screen_y=self.top_nav.height,
                 height=self.canvas_height - self.top_nav.height,
             )

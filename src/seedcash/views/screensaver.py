@@ -1,6 +1,4 @@
 import logging
-import os
-import random
 import time
 
 from dataclasses import dataclass
@@ -8,9 +6,7 @@ from gettext import gettext as _
 
 from seedcash.gui.components import TextArea, GUIConstants, load_image
 from seedcash.gui.screens.screen import BaseScreen
-from seedcash.models.settings import Settings
-from seedcash.models.threads import BaseThread
-from seedcash.views.view import View
+from seedcash.views.view import View, Destination, PowerOffView
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +135,8 @@ class ScreensaverScreen(LogoScreen):
                     if (time.time() - self.start_time) > 1 * 60:  # five mintues
                         logger.info("Screensaver timeout reached; shutting down.")
                         self.shutdown()
-                        return
+                        logger.info("Shutdown returned", self._is_running)
+                        return Destination(PowerOffView).run()
 
                     self.image = self.logo_image
                     # Must crop the image to the exact display size
@@ -199,8 +196,6 @@ class ScreensaverScreen(LogoScreen):
                 if counter <= 0:
                     self._is_running = False
                     self.clear_screen()
-                    thread = ScreensaverScreen.DoResetThread()
-                    thread.start()
                     return
 
         except KeyboardInterrupt as e:
@@ -214,14 +209,3 @@ class ScreensaverScreen(LogoScreen):
 
             # Restore the original screen
             self.renderer.show_image(self.last_screen)
-
-    class DoResetThread(BaseThread):
-        def run(self):
-            import time
-            from subprocess import call
-
-            # Give the screen just enough time to display the reset message before
-            # exiting.
-            time.sleep(0.25)
-
-            os.system("kill -9 $(ps | grep '[p]ython3' | awk '{print $1}')")
