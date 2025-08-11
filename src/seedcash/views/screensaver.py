@@ -131,11 +131,6 @@ class ScreensaverScreen(LogoScreen):
                     if self.buttons.has_any_input() or self.buttons.override_ind:
                         break
 
-                    # if it's 5 mins since the screensaver started, shutdown
-                    if (time.time() - self.start_time) > 1 * 60:  # five mintues
-                        logger.info("Screensaver timeout reached; shutting down.")
-                        return "SHUTDOWN"
-
                     self.image = self.logo_image
                     # Must crop the image to the exact display size
                     crop = self.image.crop(
@@ -154,7 +149,10 @@ class ScreensaverScreen(LogoScreen):
 
                 # Have to let the interrupt bubble up to exit the main app
                 raise e
+            finally:
+                # Restore the last screen
+                self._is_running = False
+                self.renderer.show_image(self.last_screen)
 
     def stop(self):
         self._is_running = False
-        self.renderer.show_image(self.last_screen)

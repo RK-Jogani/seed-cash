@@ -200,12 +200,9 @@ class SettingsConstants:
 
         locales_present = set()
         for root, dirs, files in os.walk(
-            os.path.join(
-                cwd, "seedsigner", "resources", "seedsigner-translations", "l10n"
-            )
+            os.path.join(cwd, "seedcash", "resources", "seedcash-translations", "l10n")
         ):
             for file in [f for f in files if f.endswith(".mo")]:
-                # `root` will be [...]seedsigner/resources/seedsigner-translations/l10n/pt_BR/LC_MESSAGES
                 locales_present.add(root.split(f"l10n{ os.sep }")[1].split(os.sep)[0])
 
         for locale in cls.ALL_LOCALES.keys():
@@ -817,9 +814,14 @@ if __name__ == "__main__":
 
     hostname = os.uname()[1]
 
-    if hostname == "seedsigner-os":
+    try:
         output_file = "/mnt/microsd/settings_definition.json"
-    else:
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            "Unable to write settings_definition.json to /mnt/microsd. "
+            "Please ensure the SD card is inserted and mounted."
+        )
+    finally:
         output_file = "settings_definition.json"
 
     with open(output_file, "w") as json_file:

@@ -6,7 +6,6 @@ from gettext import gettext as _
 
 from seedcash.hardware.buttons import HardwareButtonsConstants
 from seedcash.gui.components import (
-    Fonts,
     IconTextLine,
     TextArea,
     GUIConstants,
@@ -29,8 +28,6 @@ Seed Cash Screens
 *****************************"""
 
 
-# SeedCashLoadSeedScreen is used to load a seed in the Seed Cash flow.
-# Reminder Screen
 @dataclass
 class SeedCashGenerateSeedScreen(ButtonListScreen, BaseTopNavScreen):
     def __post_init__(self):
