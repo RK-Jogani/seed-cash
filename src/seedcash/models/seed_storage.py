@@ -56,9 +56,9 @@ class SeedStorage:
             return mnemonic_seed
 
     def set_mnemonic_length(self, length: int):
-        if length not in [12, 15, 18, 21, 24]:
+        if length not in [12, 15, 18, 20, 21, 24, 33]:
             raise ValueError(
-                "Invalid mnemonic length. Must be one of [12, 15, 18, 21, 24]."
+                "Invalid mnemonic length. Must be one of [12, 15, 18, 20, 21, 24, 33]."
             )
         self._mnemonic = [None] * length
         logger.info(f"Mnemonic length set to {length} words.")

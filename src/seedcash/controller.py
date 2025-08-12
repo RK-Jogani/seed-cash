@@ -8,11 +8,12 @@ from seedcash.gui.toast import BaseToastOverlayManagerThread
 from seedcash.models.seed import Seed
 from seedcash.models.seed_storage import SeedStorage
 from seedcash.models.settings import Settings
+from seedcash.models.settings_definition import SettingsConstants
 from seedcash.models.singleton import Singleton
 from seedcash.models.threads import BaseThread
 from seedcash.views.screensaver import ScreensaverScreen
 from seedcash.hardware.buttons import HardwareButtons
-from seedcash.views.view import Destination, PowerOffView
+from seedcash.views.view import Destination
 
 
 logger = logging.getLogger(__name__)
@@ -358,6 +359,26 @@ class Controller(Singleton):
     @property
     def is_screensaver_running(self):
         return self.screensaver is not None and self.screensaver.is_running
+
+    # switch seed protocols
+    def switch_seed_protocol(self, protocol: str) -> Destination:
+        """
+        Switches the seed protocol to the given protocol and returns a Destination to
+        the ProtocolMigrationWarningView if needed.
+        """
+        logger.info(f"Switching seed protocol to: {protocol}")
+        if protocol not in SettingsConstants.get_all_seed_protocols():
+            raise ValueError(f"Invalid seed protocol: {protocol}")
+
+        self.settings.set_value(SettingsConstants.SETTING__SEED_PROTOCOL, protocol)
+
+        self.ChooseWords = SettingsConstants.get_choose_words_options(protocol)
+        logger.info(f"Choose words options set to: {self.ChooseWords}")
+        # set the choose words
+        self.settings.set_value(
+            SettingsConstants.SETTING__CHOOSE_WORDS,
+            self.ChooseWords,
+        )
 
     def start_screensaver(self):
         # If a toast is running, tell it to give up the Renderer.lock; it will then

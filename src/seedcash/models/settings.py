@@ -129,20 +129,22 @@ class Settings(Singleton):
     def __str__(self):
         return json.dumps(self._data, indent=4)
 
-    def save(self):
-        from seedcash.hardware.microsd import MicroSD
+    # this functtion is not used anymore, but keeping it here for reference
+    # the function actually writes the current settings to disk
+    # def save(self):
+    #     from seedcash.hardware.microsd import MicroSD
 
-        if (
-            self._data[SettingsConstants.SETTING__PERSISTENT_SETTINGS]
-            == SettingsConstants.OPTION__ENABLED
-            and MicroSD.get_instance().is_inserted
-        ):
-            with open(Settings.SETTINGS_FILENAME, "w") as settings_file:
-                json.dump(self._data, settings_file, indent=4)
-                # SeedSignerOS makes removing the microsd possible, flush and then fsync forces persistent settings to disk
-                # without this, recent settings changes could be missing after the microsd card was removed
-                settings_file.flush()
-                os.fsync(settings_file.fileno())
+    #     if (
+    #         self._data[SettingsConstants.SETTING__PERSISTENT_SETTINGS]
+    #         == SettingsConstants.OPTION__ENABLED
+    #         and MicroSD.get_instance().is_inserted
+    #     ):
+    #         with open(Settings.SETTINGS_FILENAME, "w") as settings_file:
+    #             json.dump(self._data, settings_file, indent=4)
+    #             # SeedSignerOS makes removing the microsd possible, flush and then fsync forces persistent settings to disk
+    #             # without this, recent settings changes could be missing after the microsd card was removed
+    #             settings_file.flush()
+    #             os.fsync(settings_file.fileno())
 
     def update(self, new_settings: dict):
         """
@@ -194,19 +196,8 @@ class Settings(Singleton):
             if type(value) != list:
                 raise Exception(f"value must be a List for {attr_name}")
 
-        # Special handling for toggling persistence
-        if (
-            attr_name == SettingsConstants.SETTING__PERSISTENT_SETTINGS
-            and value == SettingsConstants.OPTION__DISABLED
-        ):
-            try:
-                os.remove(self.SETTINGS_FILENAME)
-                logger.info(f"Removed {self.SETTINGS_FILENAME}")
-            except:
-                logger.info(f"{self.SETTINGS_FILENAME} not found to be removed")
-
         self._data[attr_name] = value
-        self.save()
+        # self.save()
 
         # Special handling for localization
         if attr_name == SettingsConstants.SETTING__LOCALE:

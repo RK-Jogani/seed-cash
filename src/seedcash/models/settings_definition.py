@@ -9,32 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 class SettingsConstants:
-    # Basic defaults
-    OPTION__ENABLED = "E"
-    OPTION__DISABLED = "D"
-    OPTION__PROMPT = "P"
-    OPTION__REQUIRED = "R"
-    OPTIONS__ENABLED_DISABLED = [
-        (OPTION__ENABLED, ("Enabled")),
-        (OPTION__DISABLED, ("Disabled")),
-    ]
-    OPTIONS__ONLY_DISABLED = [
-        (OPTION__DISABLED, ("Disabled")),
-    ]
-    OPTIONS__PROMPT_REQUIRED_DISABLED = [
-        (OPTION__PROMPT, ("Prompt")),
-        (OPTION__REQUIRED, ("Required")),
-        (OPTION__DISABLED, ("Disabled")),
-    ]
-    OPTIONS__ENABLED_DISABLED_REQUIRED = OPTIONS__ENABLED_DISABLED + [
-        (OPTION__REQUIRED, ("Required")),
-    ]
-    OPTIONS__ENABLED_DISABLED_PROMPT = OPTIONS__ENABLED_DISABLED + [
-        (OPTION__PROMPT, ("Prompt")),
-    ]
-    ALL_OPTIONS = OPTIONS__ENABLED_DISABLED_PROMPT + [
-        (OPTION__REQUIRED, ("Required")),
-    ]
+    # Basic settings options
+    OPTION__ENABLED = "enabled"
+    OPTION__DISABLED = "disabled"
+    OPTION__PROMPT = "prompt"
+    OPTIONS__ENABLED_DISABLED = [OPTION__ENABLED, OPTION__DISABLED]
 
     # User-facing selection options
     COORDINATOR__BLUE_WALLET = "bw"
@@ -50,62 +29,16 @@ class SettingsConstants:
         (COORDINATOR__KEEPER, "Keeper"),
     ]
 
-    # Over-specifying current and possible future locales to reduce/eliminate main repo
-    # changes when adding/testing new languages.
-    LOCALE__ARABIC = "ar"
-    LOCALE__BENGALI = "bn"
-    LOCALE__BULGARIAN = "bg"
-    LOCALE__CATALAN = "ca"
-    LOCALE__CHINESE_SIMPLIFIED = "zh_Hans_CN"
-    LOCALE__CHINESE_TRADITIONAL = "zh_Hant_TW"
-    LOCALE__CROATIAN = "hr"
-    LOCALE__CZECH = "cs"
-    LOCALE__DANISH = "da"
-    LOCALE__DUTCH = "nl"
-    LOCALE__EGYPTIAN = "ar_EG"
     LOCALE__ENGLISH = "en"
-    LOCALE__ESTONIAN = "et"
-    LOCALE__FINNISH = "fi"
-    LOCALE__FRENCH = "fr"
-    LOCALE__GAELIC = "gd"
-    LOCALE__GERMAN = "de"
-    LOCALE__GREEK = "el"
-    LOCALE__GUJARATI = "gu"
-    LOCALE__HAUSA = "ha"
-    LOCALE__HEBREW = "he"
-    LOCALE__HINDI = "hi"
-    LOCALE__HUNGARIAN = "hu"
-    LOCALE__INDONESIAN = "id"
-    LOCALE__ITALIAN = "it"
-    LOCALE__JAPANESE = "ja"
-    LOCALE__JAVANESE = "jv"
-    LOCALE__KOREAN = "ko"
-    LOCALE__LAO = "lo"
-    LOCALE__LATVIAN = "lv"
-    LOCALE__LITHUANIAN = "lt"
-    LOCALE__MALAY = "ms"
-    LOCALE__MALTESE = "mt"
-    LOCALE__MARATHI = "mr"
-    LOCALE__NORWEGIAN = "no"
-    LOCALE__PERSIAN = "fa"
-    LOCALE__POLISH = "pl"
-    LOCALE__PORTUGUESE_BR = "pt_BR"
-    LOCALE__PORTUGUESE_PT = "pt_PT"
-    LOCALE__PUNJABI = "pa"
-    LOCALE__ROMANIAN = "ro"
-    LOCALE__RUSSIAN = "ru"
-    LOCALE__SLOVAK = "sk"
-    LOCALE__SLOVENIAN = "sl"
+    LOCALE__CHINESE = "zh_Hans_CN"
     LOCALE__SPANISH = "es"
-    LOCALE__SWEDISH = "sv"
-    LOCALE__TAGALOG = "tl"
-    LOCALE__TAMIL = "ta"
-    LOCALE__TELUGU = "te"
-    LOCALE__THAI = "th"
-    LOCALE__TURKISH = "tr"
-    LOCALE__UKRANIAN = "uk"
-    LOCALE__URDU = "ur"
-    LOCALE__VIETNAMESE = "vi"
+
+    ALL_LOCALES = {
+        LOCALE__ENGLISH: "English",
+        LOCALE__CHINESE: "简体中文 (Chinese Simplified)",
+        LOCALE__SPANISH: "Español (Spanish)",
+        LOCALE__SPANISH: "Español (Spanish)",
+    }
 
     # Do not wrap for translation. Present each language in its native form (i.e. either
     # using its native chars or how they write it in Latin chars; e.g. Spanish is listed
@@ -116,67 +49,6 @@ class SettingsConstants:
     # Include English name in parens for languages that don't use Latin chars.
     # Include region/country in parens for specific dialects (e.g. "Português (Brasil)").
     # Note that dicts preserve insertion order as of Python 3.7.
-    ALL_LOCALES = {
-        # --------- Fully supported languages -------------------------------------------
-        LOCALE__CATALAN: "Català",
-        LOCALE__GERMAN: "Deutsch",
-        LOCALE__ENGLISH: "English",
-        LOCALE__SPANISH: "Español",
-        LOCALE__FRENCH: "Français",
-        LOCALE__ITALIAN: "Italiano",
-        LOCALE__DUTCH: "Nederlands",
-        # --------- Beta languages ------------------------------------------------------
-        LOCALE__CHINESE_SIMPLIFIED: "(beta) 简体中文 (Chinese Simplified)",
-        LOCALE__JAPANESE: "(beta) 日本語 (Japanese)",
-        LOCALE__KOREAN: "(beta) 한국어 (Korean)",
-        # --------- Placeholders / Coming soon ------------------------------------------
-        # Commented out options require explicit additional font support.
-        # -------------------------------------------------------------------------------
-        # LOCALE__ARABIC: "العربية (Arabic)",
-        # LOCALE__BENGALI: "বাংলা (Bengali)",
-        LOCALE__BULGARIAN: "български (Bulgarian)",  # OpenSans includes cyrillic chars
-        LOCALE__CZECH: "čeština",
-        # LOCALE__CHINESE_TRADITIONAL: "繁體中文 (Chinese Traditional)",
-        LOCALE__DANISH: "Dansk",
-        LOCALE__ESTONIAN: "Eesti",
-        # LOCALE__EGYPTIAN: "مصرى (Egyptian)",
-        LOCALE__GAELIC: "Gaeilge",
-        LOCALE__GREEK: "Ελληνικά (Greek)",  # OpenSans includes Greek chars
-        # LOCALE__GUJARATI: "ગુજરાતી (Gujarati)",
-        LOCALE__HAUSA: "Hausa",
-        # LOCALE__HEBREW: "עברית (Hebrew)",
-        # LOCALE__HINDI: "हिन्दी (Hindi)",
-        LOCALE__CROATIAN: "Hrvatski",
-        LOCALE__INDONESIAN: "Indonesia",
-        LOCALE__JAVANESE: "Jawa (Javanese)",
-        # LOCALE__LAO: "ລາວ (Lao)",
-        LOCALE__LATVIAN: "Latviešu",
-        LOCALE__LITHUANIAN: "Lietuvių",
-        LOCALE__HUNGARIAN: "Magyar",
-        LOCALE__MALAY: "Melayu",
-        LOCALE__MALTESE: "Malti",
-        # LOCALE__MARATHI: "मराठी (Marathi)",
-        LOCALE__NORWEGIAN: "Norsk",
-        # LOCALE__PERSIAN: "فارسی (Persian)",
-        LOCALE__POLISH: "Polski",
-        LOCALE__PORTUGUESE_BR: "Português (Brasil)",
-        LOCALE__PORTUGUESE_PT: "Português (Portugal)",
-        # LOCALE__PUNJABI: "ਪੰਜਾਬੀ (Punjabi)",
-        LOCALE__ROMANIAN: "Română",
-        LOCALE__RUSSIAN: "русский (Russian)",  # OpenSans includes cyrillic chars
-        LOCALE__SLOVAK: "Slovenčina",
-        LOCALE__SLOVENIAN: "Slovenščina",
-        LOCALE__FINNISH: "Suomi",
-        LOCALE__SWEDISH: "Svenska",
-        LOCALE__TAGALOG: "Tagalog",
-        # LOCALE__TAMIL: "தமிழ் (Tamil)",
-        # LOCALE__TELUGU: "తెలుగు (Telugu)",
-        # LOCALE__THAI: "ไทย (Thai)",
-        LOCALE__TURKISH: "Türkçe",
-        LOCALE__UKRANIAN: "українська (Ukranian)",  # OpenSans includes cyrillic chars
-        # LOCALE__URDU: "اردو (Urdu)",
-        LOCALE__VIETNAMESE: "Tiếng Việt (Vietnamese)",
-    }
 
     @classmethod
     def get_detected_languages(cls) -> list[tuple[str, str]]:
@@ -211,104 +83,73 @@ class SettingsConstants:
 
         return detected_languages
 
-    BTC_DENOMINATION__BTC = "btc"
-    BTC_DENOMINATION__SATS = "sats"
-    BTC_DENOMINATION__THRESHOLD = "thr"
-    BTC_DENOMINATION__BTCSATSHYBRID = "hyb"
-    ALL_BTC_DENOMINATIONS = [
-        (BTC_DENOMINATION__BTC, ("BTC")),
-        (BTC_DENOMINATION__SATS, ("sats")),
-        (BTC_DENOMINATION__THRESHOLD, ("Threshold at 0.01")),
-        (BTC_DENOMINATION__BTCSATSHYBRID, ("BTC | sats hybrid")),
-    ]
+    @classmethod
+    def get_all_seed_protocols(cls) -> list[str]:
+        """
+        Returns a list of all available seed protocols.
+        """
+        protocols = [protocol[1] for protocol in cls.ALL_SEED_PROTOCOLS]
+        logger.info(f"Available seed protocols: {protocols}")
+        return protocols
+
+    @classmethod
+    def get_choose_words_options(cls, protocol: str) -> list[tuple[int, str]]:
+        """
+        Returns the available options for choosing the number of words based on the
+        selected seed protocol.
+        """
+        if protocol == cls.SEED_PROTOCOL__BIP39:
+            return [protocol[0] for protocol in cls.CHOOSE_BIP39_WORDS]
+        elif protocol == cls.SEED_PROTOCOL__SLIP39:
+            return [protocol[0] for protocol in cls.CHOOSE_SLIP39_WORDS]
+        else:
+            raise ValueError(f"Invalid seed protocol: {protocol}")
 
     CAMERA_ROTATION__0 = 0
     CAMERA_ROTATION__90 = 90
     CAMERA_ROTATION__180 = 180
     CAMERA_ROTATION__270 = 270
     ALL_CAMERA_ROTATIONS = [
-        (CAMERA_ROTATION__0, ("0°")),
-        (CAMERA_ROTATION__90, ("90°")),
-        (CAMERA_ROTATION__180, ("180°")),
-        (CAMERA_ROTATION__270, ("270°")),
+        (CAMERA_ROTATION__0, ("Rotation 0°")),
+        (CAMERA_ROTATION__90, ("Rotation 90°")),
+        (CAMERA_ROTATION__180, ("Rotation 180°")),
+        (CAMERA_ROTATION__270, ("Rotation 270°")),
     ]
 
-    # QR code constants
-    DENSITY__LOW = "L"
-    DENSITY__MEDIUM = "M"
-    DENSITY__HIGH = "H"
-    # TRANSLATOR_NOTE: QR code density option: Low, Medium, High
-    density_low = "Low"
-    # TRANSLATOR_NOTE: QR code density option: Low, Medium, High
-    density_medium = "Medium"
-    # TRANSLATOR_NOTE: QR code density option: Low, Medium, High
-    density_high = "High"
-    ALL_DENSITIES = [
-        (DENSITY__LOW, density_low),
-        (DENSITY__MEDIUM, density_medium),
-        (DENSITY__HIGH, density_high),
+    # Seed protocols
+    SEED_PROTOCOL__BIP39 = "BIP39"
+    SEED_PROTOCOL__SLIP39 = "SLIP39"
+
+    ALL_SEED_PROTOCOLS = [
+        (SEED_PROTOCOL__BIP39, "BIP39"),
+        (SEED_PROTOCOL__SLIP39, "SLIP39"),
     ]
 
-    # Seed-related constants
-    MAINNET = "M"
-    TESTNET = "T"
-    REGTEST = "R"
-    ALL_NETWORKS = [
-        (MAINNET, ("Mainnet")),
-        (TESTNET, ("Testnet")),
-        (REGTEST, ("Regtest")),
+    # BIPP39 Choose Words
+    CHOOSE_BIP39_WORDS = [
+        (12, "12 Words"),
+        (15, "15 Words"),
+        (18, "18 Words"),
+        (21, "21 Words"),
+        (24, "24 Words"),
     ]
 
-    @classmethod
-    def map_network_to_embit(cls, network) -> str:
-        # Note these are `embit` constants; do not wrap for translation
-        if network == SettingsConstants.MAINNET:
-            return "main"
-        elif network == SettingsConstants.TESTNET:
-            return "test"
-        if network == SettingsConstants.REGTEST:
-            return "regtest"
+    CHOOSE_SLIP39_WORDS = [
+        (20, "20 Words"),
+        (33, "33 Words"),
+    ]
 
     PERSISTENT_SETTINGS__SD_INSERTED__HELP_TEXT = "Store Settings on SD card"
     PERSISTENT_SETTINGS__SD_REMOVED__HELP_TEXT = "Insert SD card to enable"
 
-    SINGLE_SIG = "ss"
-    MULTISIG = "ms"
-    ALL_SIG_TYPES = [
-        (SINGLE_SIG, ("Single Sig")),
-        (MULTISIG, ("Multisig")),
-    ]
-
-    LEGACY_P2PKH = "leg"
-    NATIVE_SEGWIT = "nat"
-    NESTED_SEGWIT = "nes"
-    TAPROOT = "tr"
-    CUSTOM_DERIVATION = "cus"
-    ALL_SCRIPT_TYPES = [
-        (NATIVE_SEGWIT, ("Native Segwit")),
-        (NESTED_SEGWIT, ("Nested Segwit")),
-        (LEGACY_P2PKH, ("Legacy")),
-        (TAPROOT, ("Taproot")),
-        (CUSTOM_DERIVATION, ("Custom Derivation")),
-    ]
-
     WORDLIST_LANGUAGE__ENGLISH = "en"
-    WORDLIST_LANGUAGE__CHINESE_SIMPLIFIED = "zh_Hans_CN"
-    WORDLIST_LANGUAGE__CHINESE_TRADITIONAL = "zh_Hant_TW"
-    WORDLIST_LANGUAGE__FRENCH = "fr"
-    WORDLIST_LANGUAGE__ITALIAN = "it"
-    WORDLIST_LANGUAGE__JAPANESE = "jp"
-    WORDLIST_LANGUAGE__KOREAN = "kr"
-    WORDLIST_LANGUAGE__PORTUGUESE = "pt"
+    WORDLIST_LANGUAGE__CHINESE = "zh_Hant_TW"
+    WORDLIST_LANGUAGE__SPANISH = "es"
+
     ALL_WORDLIST_LANGUAGES = [
         (WORDLIST_LANGUAGE__ENGLISH, "English"),
-        # (WORDLIST_LANGUAGE__CHINESE_SIMPLIFIED, "简体中文"),
-        # (WORDLIST_LANGUAGE__CHINESE_TRADITIONAL, "繁體中文"),
-        # (WORDLIST_LANGUAGE__FRENCH, "Français"),
-        # (WORDLIST_LANGUAGE__ITALIAN, "Italiano"),
-        # (WORDLIST_LANGUAGE__JAPANESE, "日本語"),
-        # (WORDLIST_LANGUAGE__KOREAN, "한국어"),
-        # (WORDLIST_LANGUAGE__PORTUGUESE, "Português"),
+        (WORDLIST_LANGUAGE__CHINESE, "简体中文 (Chinese)"),
+        (WORDLIST_LANGUAGE__SPANISH, "Español (Spanish)"),
     ]
 
     # Individual SettingsEntry attr_names
@@ -317,27 +158,13 @@ class SettingsConstants:
     SETTING__WORDLIST_LANGUAGE = "wordlist_language"
     SETTING__PERSISTENT_SETTINGS = "persistent_settings"
     SETTING__COORDINATORS = "coordinators"
-    SETTING__BTC_DENOMINATION = "denomination"
 
     SETTING__DISPLAY_CONFIGURATION = "display_config"
     SETTING__DISPLAY_COLOR_INVERTED = "color_inverted"
 
-    SETTING__NETWORK = "network"
-    SETTING__QR_DENSITY = "qr_density"
-    SETTING__XPUB_EXPORT = "xpub_export"
-    SETTING__SIG_TYPES = "sig_types"
-    SETTING__SCRIPT_TYPES = "script_types"
-    SETTING__XPUB_DETAILS = "xpub_details"
-    SETTING__PASSPHRASE = "passphrase"
     SETTING__CAMERA_ROTATION = "camera_rotation"
-    SETTING__COMPACT_SEEDQR = "compact_seedqr"
-    SETTING__BIP85_CHILD_SEEDS = "bip85_child_seeds"
-    SETTING__ELECTRUM_SEEDS = "electrum_seeds"
-    SETTING__MESSAGE_SIGNING = "message_signing"
-    SETTING__PRIVACY_WARNINGS = "privacy_warnings"
-    SETTING__DIRE_WARNINGS = "dire_warnings"
-    SETTING__QR_BRIGHTNESS_TIPS = "qr_brightness_tips"
-    SETTING__PARTNER_LOGOS = "partner_logos"
+    SETTING__SEED_PROTOCOL = "seed_protocol"
+    SETTING__CHOOSE_WORDS = "choose_words"
 
     SETTING__DEBUG = "debug"
 
@@ -421,9 +248,7 @@ class SettingsEntry:
     """
 
     # TODO: Handle multi-language `display_name` and `help_text`
-    category: str
     attr_name: str
-    display_name: str
     abbreviated_name: str = None
     visibility: str = SettingsConstants.VISIBILITY__GENERAL
     type: str = SettingsConstants.TYPE__ENABLED_DISABLED
@@ -530,234 +355,62 @@ class SettingsDefinition:
     version: int = 1
 
     settings_entries: List[SettingsEntry] = [
-        # General options
+        # Locale Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
             attr_name=SettingsConstants.SETTING__LOCALE,
-            abbreviated_name="lang",
-            display_name=("Language"),
+            abbreviated_name="locale",
             type=SettingsConstants.TYPE__SELECT_1,
             selection_options=SettingsConstants.get_detected_languages(),
             default_value=SettingsConstants.LOCALE__ENGLISH,
+            help_text="Language of the user interface",
         ),
-        # TODO: Support other bip-39 wordlist languages! Until then, type == HIDDEN
+        # Language Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
             attr_name=SettingsConstants.SETTING__WORDLIST_LANGUAGE,
-            abbreviated_name="wordlist_lang",
-            display_name=("Mnemonic language"),
             type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__HIDDEN,
             selection_options=SettingsConstants.ALL_WORDLIST_LANGUAGES,
             default_value=SettingsConstants.WORDLIST_LANGUAGE__ENGLISH,
         ),
+        # Camera Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
-            attr_name=SettingsConstants.SETTING__PERSISTENT_SETTINGS,
-            abbreviated_name="persistent",
-            display_name=("Persistent settings"),
-            help_text=SettingsConstants.PERSISTENT_SETTINGS__SD_INSERTED__HELP_TEXT,
-            default_value=SettingsConstants.OPTION__DISABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__WALLET,
-            attr_name=SettingsConstants.SETTING__COORDINATORS,
-            abbreviated_name="coords",
-            display_name=("Coordinator software"),
-            type=SettingsConstants.TYPE__MULTISELECT,
-            selection_options=SettingsConstants.ALL_COORDINATORS,
-            default_value=[
-                SettingsConstants.COORDINATOR__BLUE_WALLET,
-                SettingsConstants.COORDINATOR__NUNCHUK,
-                SettingsConstants.COORDINATOR__SPARROW,
-                SettingsConstants.COORDINATOR__SPECTER_DESKTOP,
-            ],
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
-            attr_name=SettingsConstants.SETTING__BTC_DENOMINATION,
-            abbreviated_name="denom",
-            display_name=("Denomination display"),
-            type=SettingsConstants.TYPE__SELECT_1,
-            selection_options=SettingsConstants.ALL_BTC_DENOMINATIONS,
-            default_value=SettingsConstants.BTC_DENOMINATION__THRESHOLD,
-        ),
-        # Advanced options
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__NETWORK,
-            display_name=("Bitcoin network"),
-            type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            selection_options=SettingsConstants.ALL_NETWORKS,
-            default_value=SettingsConstants.MAINNET,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__QR_DENSITY,
-            display_name=("QR code density"),
-            type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            selection_options=SettingsConstants.ALL_DENSITIES,
-            default_value=SettingsConstants.DENSITY__MEDIUM,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__XPUB_EXPORT,
-            display_name=("Xpub export"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__SIG_TYPES,
-            abbreviated_name="sigs",
-            display_name=("Sig types"),
-            type=SettingsConstants.TYPE__MULTISELECT,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            selection_options=SettingsConstants.ALL_SIG_TYPES,
-            default_value=SettingsConstants.ALL_SIG_TYPES,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__SCRIPT_TYPES,
-            abbreviated_name="scripts",
-            display_name=("Script types"),
-            type=SettingsConstants.TYPE__MULTISELECT,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            selection_options=SettingsConstants.ALL_SCRIPT_TYPES,
-            default_value=[
-                SettingsConstants.NATIVE_SEGWIT,
-                SettingsConstants.NESTED_SEGWIT,
-                SettingsConstants.TAPROOT,
-            ],
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__XPUB_DETAILS,
-            display_name=("Show xpub details"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__PASSPHRASE,
-            display_name=("BIP-39 passphrase"),
-            type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            selection_options=SettingsConstants.OPTIONS__ENABLED_DISABLED_REQUIRED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
             attr_name=SettingsConstants.SETTING__CAMERA_ROTATION,
-            abbreviated_name="camera",
-            display_name=("Camera rotation"),
             type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
             selection_options=SettingsConstants.ALL_CAMERA_ROTATIONS,
             default_value=SettingsConstants.CAMERA_ROTATION__180,
         ),
+        # Seed Protocol Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__COMPACT_SEEDQR,
-            display_name=("Compact SeedQR"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
+            attr_name=SettingsConstants.SETTING__SEED_PROTOCOL,
+            type=SettingsConstants.TYPE__SELECT_1,
+            selection_options=SettingsConstants.ALL_SEED_PROTOCOLS,
+            default_value=SettingsConstants.SEED_PROTOCOL__BIP39,
         ),
+        # Choose Words Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__BIP85_CHILD_SEEDS,
-            abbreviated_name="bip85",
-            display_name=("BIP-85 child seeds"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__DISABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__ELECTRUM_SEEDS,
-            abbreviated_name="electrum",
-            display_name=("Electrum seeds"),
-            help_text=("Native Segwit only"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__DISABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__MESSAGE_SIGNING,
-            display_name=("Message signing"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__DISABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__PRIVACY_WARNINGS,
-            abbreviated_name="priv_warn",
-            display_name=("Show privacy warnings"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__DIRE_WARNINGS,
-            abbreviated_name="dire_warn",
-            display_name=("Show dire warnings"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__QR_BRIGHTNESS_TIPS,
-            display_name=("Show QR brightness tips"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
-        ),
-        SettingsEntry(
-            category=SettingsConstants.CATEGORY__FEATURES,
-            attr_name=SettingsConstants.SETTING__PARTNER_LOGOS,
-            abbreviated_name="partners",
-            display_name=("Show partner logos"),
-            visibility=SettingsConstants.VISIBILITY__ADVANCED,
-            default_value=SettingsConstants.OPTION__ENABLED,
+            attr_name=SettingsConstants.SETTING__CHOOSE_WORDS,
+            type=SettingsConstants.TYPE__SELECT_1,
+            default_value=SettingsConstants.CHOOSE_BIP39_WORDS,
         ),
         # Hardware config
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
-            attr_name=SettingsConstants.SETTING__DISPLAY_CONFIGURATION,
-            abbreviated_name="disp_conf",
-            # TRANSLATOR_NOTE: Hardware settings option to specify the screen driver (e.g. st7789 vs ili9341)
-            display_name=("Display type"),
+            attr_name=SettingsConstants.SETTING__COORDINATORS,
             type=SettingsConstants.TYPE__SELECT_1,
-            visibility=SettingsConstants.VISIBILITY__HARDWARE,
             selection_options=SettingsConstants.ALL_DISPLAY_CONFIGURATIONS,
             default_value=SettingsConstants.DISPLAY_CONFIGURATION__ST7789__240x240,
         ),
+        # Display Settings
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
-            attr_name=SettingsConstants.SETTING__DISPLAY_COLOR_INVERTED,
-            abbreviated_name="rgb_inv",
-            # TRANSLATOR_NOTE: Hardware settings option to invert how the screen driver displays colors.
-            display_name=("Invert colors"),
-            type=SettingsConstants.TYPE__ENABLED_DISABLED,
-            visibility=SettingsConstants.VISIBILITY__HARDWARE,
-            default_value=SettingsConstants.OPTION__DISABLED,
+            attr_name=SettingsConstants.SETTING__DISPLAY_CONFIGURATION,
+            abbreviated_name="display_config",
+            type=SettingsConstants.TYPE__SELECT_1,
+            selection_options=SettingsConstants.ALL_DISPLAY_CONFIGURATIONS,
+            default_value=SettingsConstants.DISPLAY_CONFIGURATION__ST7789__240x240,
+            help_text="Display configuration",
         ),
-        # Developer options
-        # TODO: No real Developer options needed yet. Disable for now.
-        # SettingsEntry(category=SettingsConstants.CATEGORY__SYSTEM,
-        #               attr_name=SettingsConstants.SETTING__DEBUG,
-        #               display_name="Debug",
-        #               visibility=SettingsConstants.VISIBILITY__DEVELOPER,
-        #               default_value=SettingsConstants.OPTION__DISABLED),
-        # "Hidden" settings with no UI interaction
         SettingsEntry(
-            category=SettingsConstants.CATEGORY__SYSTEM,
-            attr_name=SettingsConstants.SETTING__QR_BRIGHTNESS,
-            abbreviated_name="qr_brightness",
-            display_name=("QR background color"),
-            type=SettingsConstants.TYPE__FREE_ENTRY,
-            visibility=SettingsConstants.VISIBILITY__HIDDEN,
-            default_value=62,
+            attr_name=SettingsConstants.SETTING__DISPLAY_COLOR_INVERTED,
+            abbreviated_name="color_inverted",
+            type=SettingsConstants.TYPE__ENABLED_DISABLED,
         ),
     ]
 

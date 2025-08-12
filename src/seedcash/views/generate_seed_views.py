@@ -2,7 +2,6 @@ import logging
 
 from gettext import gettext as _
 from seedcash.models.btc_functions import BitcoinFunctions as bf
-from seedcash.gui.components import SeedCashIconsConstants
 from seedcash.gui.screens import RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import ButtonOption
 from seedcash.models.seed import Seed
@@ -10,6 +9,7 @@ from seedcash.views.view import (
     View,
     Destination,
     BackStackView,
+    SeedCashChooseWordsView,
 )
 
 
@@ -23,6 +23,7 @@ Seed Cash Updated Code
 # First Generate Seed View
 class SeedCashGenerateSeedView(View):
     RANDOM_SEED = ButtonOption("Random Seed")
+
     CALCULATE_SEED = ButtonOption("Calculate Last Word")
 
     def run(self):
@@ -41,16 +42,12 @@ class SeedCashGenerateSeedView(View):
             return Destination(BackStackView)
 
         if button_data[selected_menu_num] == self.CALCULATE_SEED:
-            from seedcash.views.load_seed_views import SeedCashLoadSeedView
-
             return Destination(
-                SeedCashLoadSeedView, view_args=dict(is_calc_final_word=True)
+                SeedCashChooseWordsView, view_args=dict(is_calc_final_word=True)
             )
         elif button_data[selected_menu_num] == self.RANDOM_SEED:
-            from seedcash.views.load_seed_views import SeedCashLoadSeedView
-
             return Destination(
-                SeedCashLoadSeedView, view_args=dict(is_random_seed=True)
+                SeedCashChooseWordsView, view_args=dict(is_random_seed=True)
             )
 
         return Destination(BackStackView)
