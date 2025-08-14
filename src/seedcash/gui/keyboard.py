@@ -87,6 +87,7 @@ class Keyboard:
         "font": REGULAR_KEY_FONT,
         "size": 1,
     }
+
     ADDITIONAL_KEYS = {
         KEY_SPACE["code"]: KEY_SPACE,
         KEY_BACKSPACE["code"]: KEY_BACKSPACE,

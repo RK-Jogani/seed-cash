@@ -56,13 +56,13 @@ class SeedCashGenerateSeedView(View):
 class SeedCashGenerateSeedRandomView(View):
     """View to generate a random seed and display the words."""
 
-    def __init__(self, num_words: int = 12):
+    def __init__(self):
         super().__init__()
-        self.num_words = num_words
 
     def run(self):
         # Generate a random mnemonic
-        mnemonic = bf.generate_random_seed(num_words=self.num_words)
+        num_words = self.controller.storage.mnemonic_length
+        mnemonic = bf.generate_random_seed(num_words=num_words)
         from seedcash.views.generate_seed_views import ShowWordsView
 
         return Destination(ShowWordsView, view_args={"mnemonic": mnemonic})

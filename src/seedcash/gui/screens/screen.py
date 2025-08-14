@@ -1224,10 +1224,10 @@ class MainMenuScreen(LargeButtonScreen):
     button_font_size: int = 16
 
 
-# SeedCashChooseWordsScreen is used to load a seed in the Seed Cash flow.
+# SeedCashButtonListWithNav is used to load a seed in the Seed Cash flow.
 # Reminder Screen
 @dataclass
-class SeedCashChooseWordsScreen(BaseTopNavScreen, ButtonListScreen):
+class SeedCashButtonListWithNav(BaseTopNavScreen, ButtonListScreen):
     def __post_init__(self):
         self.is_button_text_centered = False
         self.is_top_nav = True

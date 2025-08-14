@@ -1,5 +1,6 @@
 from typing import List
 from seedcash.models.seed import Seed, InvalidSeedException
+from seedcash.helper import shamir_mnemonic as shamir
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,6 +9,10 @@ logger = logging.getLogger(__name__)
 class SeedStorage:
     def __init__(self) -> None:
         self._mnemonic: List[str] = [None] * 12
+        self.slip_mnemonic: List[List[str]] = []
+        self.bytes: bytes = b""
+        self.groups: list[tuple] = [None]
+        self.group_threshold: int = 1
         self.seed: Seed = None
 
     @property
@@ -18,6 +23,18 @@ class SeedStorage:
     @property
     def mnemonic_length(self) -> int:
         return len(self._mnemonic)
+
+    @property
+    def bits(self) -> str:
+        if not self.bytes:
+            raise InvalidSeedException("Bits have not been initialized")
+        return bin(int.from_bytes(self.bytes, byteorder="big"))[2:].zfill(
+            len(self.bytes) * 8
+        )
+
+    @property
+    def groups_length(self) -> int:
+        return len(self.groups)
 
     def update_mnemonic(self, word: str, index: int):
         """
@@ -62,3 +79,36 @@ class SeedStorage:
             )
         self._mnemonic = [None] * length
         logger.info(f"Mnemonic length set to {length} words.")
+
+    def set_bits(self, bits: str):
+        if len(bits) not in [128, 256]:
+            raise ValueError("Bits must be either 128 or 256.")
+        # Convert str to bytes
+        self.bytes = int(bits, 2).to_bytes((len(bits) + 7) // 8, byteorder="big")
+
+    def get_group_at(self, index: int) -> tuple:
+        if index >= len(self.groups):
+            raise IndexError("Index out of range for groups")
+        return self.groups[index]
+
+    def update_groups(self, index: int, group: tuple):
+        if not group:
+            raise ValueError("Invalid group")
+        if group[0] > group[1]:
+            raise ValueError("Invalid group")
+        if index > len(self.groups):
+            raise ("Index is out of group change")
+        self.groups[index] = group
+
+    def discard_groups(self):
+        self.groups = [None]
+        self.group_threshold = 1
+
+    def generate_slip_mnemonic(self):
+        self.slip_mnemonic = shamir.generate_mnemonics(
+            group_threshold=self.group_threshold,
+            groups=self.groups,
+            master_secret=self.bytes,
+            passphrase=b"",
+        )
+        logger.info("The Slip mnemonic:", self.slip_mnemonic)

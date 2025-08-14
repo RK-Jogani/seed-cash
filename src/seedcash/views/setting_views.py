@@ -7,7 +7,11 @@ from seedcash.views.view import (
     RET_CODE__BACK_BUTTON,
 )
 from seedcash.gui.screens import setting_screens
-from seedcash.gui.screens.screen import ButtonOption, WarningScreen
+from seedcash.gui.screens.screen import (
+    ButtonOption,
+    WarningScreen,
+    SeedCashButtonListWithNav,
+)
 from seedcash.models.settings_definition import SettingsConstants
 
 import logging
@@ -37,7 +41,7 @@ class SettingOptionsView(View):
         ]
 
         selected_menu_num = self.run_screen(
-            setting_screens.SettingOptionsScreen,
+            SeedCashButtonListWithNav,
             title="Settings",
             button_data=button_data,
         )
@@ -76,7 +80,7 @@ class SettingLanguageView(View):
         button_data = self.language_buttons
 
         selected_menu_num = self.run_screen(
-            setting_screens.SettingOptionsScreen,
+            SeedCashButtonListWithNav,
             title="Language",
             button_data=button_data,
         )
@@ -109,7 +113,7 @@ class SettingSeedProtocolView(View):
         )
 
         selected_menu_num = self.run_screen(
-            setting_screens.SettingOptionsScreen,
+            SeedCashButtonListWithNav,
             title="Seed Protocol",
             button_data=button_data,
             selected_button=selected_btn,
@@ -184,7 +188,7 @@ class CameraRotationOptionsView(View):
         )
 
         selected_menu_num = self.run_screen(
-            setting_screens.SettingOptionsScreen,
+            SeedCashButtonListWithNav,
             title="Camera Rotation",
             button_data=button_data,
             selected_button=selected_btn,

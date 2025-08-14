@@ -1,0 +1,693 @@
+import logging
+import math
+from seedcash.gui.components import (
+    Button,
+    GUIConstants,
+    IconButton,
+    IconTextLine,
+    SeedCashIconsConstants,
+    TextArea,
+)
+
+from seedcash.gui.keyboard import Keyboard, TextEntryDisplay
+from seedcash.gui.screens.screen import (
+    RET_CODE__BACK_BUTTON,
+    BaseTopNavScreen,
+    BaseScreen,
+    ButtonListScreen,
+)
+from seedcash.hardware.buttons import HardwareButtonsConstants
+from dataclasses import dataclass
+from gettext import gettext as _
+from PIL import Image, ImageDraw
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SlipEntryScreen(BaseTopNavScreen):
+    bits: int = 128  # Default to 128
+    current_bits: str = ""  # Track the bits entered so far
+
+    def __post_init__(self):
+        self.show_back_button = True
+        super().__post_init__()
+
+        # Total number of screens
+        self.total_screens = self.bits // 16
+        # Initialize the current screen
+        self.current_screen = 1
+
+        # Is last screen
+        self.is_last_screen = self.current_screen == self.total_screens
+
+        # cursor position for text entry
+        self.cursor_position = 0
+
+        text_entry_display_y = self.top_nav.height
+        text_entry_display_height = 30
+
+        # Add text display for the entered bits
+        self.text_entry_display = TextEntryDisplay(
+            canvas=self.renderer.canvas,
+            rect=(
+                GUIConstants.EDGE_PADDING,
+                text_entry_display_y,
+                self.canvas_width - GUIConstants.EDGE_PADDING,
+                text_entry_display_y + text_entry_display_height,
+            ),
+            cursor_mode=TextEntryDisplay.CURSOR_MODE__BAR,
+            is_centered=False,
+            cur_text=self.current_bits,
+        )
+
+        keyboard_start_y = (
+            text_entry_display_y
+            + text_entry_display_height
+            + GUIConstants.COMPONENT_PADDING
+        )
+
+        self.keyboard = Keyboard(
+            draw=self.renderer.draw,
+            charset="01",  # Only allow binary input
+            rows=2,
+            cols=4,
+            rect=(
+                GUIConstants.COMPONENT_PADDING,
+                keyboard_start_y,
+                self.canvas_width - GUIConstants.COMPONENT_PADDING,
+                self.canvas_height
+                - 4 * GUIConstants.EDGE_PADDING
+                - GUIConstants.BUTTON_HEIGHT,
+            ),
+            additional_keys=[
+                Keyboard.KEY_CURSOR_LEFT,
+                Keyboard.KEY_CURSOR_RIGHT,
+                Keyboard.KEY_BACKSPACE,
+            ],
+            auto_wrap=[
+                Keyboard.WRAP_LEFT,
+                Keyboard.WRAP_RIGHT,
+            ],
+        )
+
+        self._dynamic_title()
+
+    def _dynamic_title(self):
+        dynamic_title_text = _(f"{len(self.current_bits)}/{self.bits} Entropy Bits")
+        self.dynamic_title = IconTextLine(
+            screen_x=GUIConstants.TOP_NAV_BUTTON_SIZE + 2 * GUIConstants.EDGE_PADDING,
+            screen_y=0,
+            height=GUIConstants.TOP_NAV_HEIGHT,
+            icon_size=GUIConstants.ICON_FONT_SIZE + 4,
+            value_text=dynamic_title_text,
+            is_text_centered=True,
+            font_name=GUIConstants.TOP_NAV_TITLE_FONT_NAME,
+            font_size=GUIConstants.TOP_NAV_TITLE_FONT_SIZE,
+        )
+        self.components.append(self.dynamic_title)
+
+    def _render(self):
+        super()._render()
+        self.keyboard.render_keys()
+        self.text_entry_display.render(self.current_bits, self.cursor_position)
+
+        for component in self.components:
+            component.render()
+
+        self.renderer.show_image()
+
+    def _run(self):
+        while True:
+            input = self.hw_inputs.wait_for(
+                [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                    HardwareButtonsConstants.KEY_UP,
+                    HardwareButtonsConstants.KEY_DOWN,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK,
+            )
+
+            with self.renderer.lock:
+
+                if self.top_nav.is_selected:
+                    if input == HardwareButtonsConstants.KEY_DOWN:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.keyboard.set_selected_key_indices(0, 0)
+                    elif input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                        return RET_CODE__BACK_BUTTON
+                    else:
+                        continue
+
+                ret_val = self.keyboard.update_from_input(input)
+                logger.info(f"Keyboard input: {ret_val}")
+                # Check exit conditions
+                if len(self.current_bits) == self.bits:
+                    return self.current_bits  # Return the entered bits
+                if input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                    if ret_val in self.keyboard.charset:
+                        # If the input is a valid character, insert it at the cursor position
+                        self.current_bits = (
+                            self.current_bits[: self.cursor_position]
+                            + ret_val
+                            + self.current_bits[self.cursor_position :]
+                        )
+                        self.cursor_position += 1
+                    elif ret_val == Keyboard.KEY_BACKSPACE["code"]:
+                        # Handle backspace
+                        if self.cursor_position > 0:
+                            self.current_bits = (
+                                self.current_bits[: self.cursor_position - 1]
+                                + self.current_bits[self.cursor_position :]
+                            )
+                            self.cursor_position -= 1
+                    elif ret_val == Keyboard.KEY_CURSOR_LEFT["code"]:
+                        # Move cursor left
+                        self.cursor_position = max(0, self.cursor_position - 1)
+                    elif ret_val == Keyboard.KEY_CURSOR_RIGHT["code"]:
+                        # Move cursor right
+                        self.cursor_position = min(
+                            len(self.current_bits), self.cursor_position + 1
+                        )
+
+                # Handle navigation
+                if ret_val in Keyboard.EXIT_DIRECTIONS:
+                    self.top_nav.is_selected = True
+                    self.top_nav.render_buttons()
+
+                self._dynamic_title()
+                self._render()
+                self.renderer.show_image()
+
+
+@dataclass
+class SlipBitsScreen(BaseScreen):
+    bits: str = ""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        if not self.bits:
+            self.bits = ""
+
+        self.bits_length = len(self.bits)
+        self.current_page = 0
+        self.bits_per_page = 64  # 4 buttons × 16 bits per button
+        self.total_pages = (
+            self.bits_length + self.bits_per_page - 1
+        ) // self.bits_per_page
+
+        # Calculate layout for bit display
+        self.bit_height = GUIConstants.BUTTON_HEIGHT
+
+        # Position bits below the top navigation
+        self.bit_y = 2 * GUIConstants.COMPONENT_PADDING
+        self.bit_x = 2 * GUIConstants.COMPONENT_PADDING
+        self.bit_width = self.canvas_width - 4 * GUIConstants.COMPONENT_PADDING
+
+        # Position for navigation buttons
+        self.nav_buttons_y = (
+            self.canvas_height - GUIConstants.BUTTON_HEIGHT - GUIConstants.EDGE_PADDING
+        )
+
+        # Create initial components
+        self._create_components()
+
+        # Start with back button selected
+        self.selected_button = 0
+        self.components[self.selected_button].is_selected = True
+
+    def _create_components(self):
+        """Create components for displaying seed words and navigation"""
+        self.components.clear()
+
+        # Add back button to return to the previous screen
+        self.back_button = IconButton(
+            icon_name=SeedCashIconsConstants.BACK,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.nav_buttons_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=False,
+            is_selected=False,
+        )
+
+        # Add next/confirm button
+        next_icon = (
+            SeedCashIconsConstants.CHECK
+            if self.current_page == self.total_pages - 1
+            else SeedCashIconsConstants.CHEVRON_RIGHT
+        )
+
+        self.next_button = IconButton(
+            icon_name=next_icon,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=self.canvas_width
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+            - GUIConstants.EDGE_PADDING,
+            screen_y=self.nav_buttons_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_selected=False,
+        )
+        self.components.append(self.next_button)
+
+        if self.current_page > 0:
+            self.components.append(self.back_button)
+
+        # Add bits for current page as non-selectable buttons (16 bits per button)
+        start_index = self.current_page * self.bits_per_page
+        end_index = min(start_index + self.bits_per_page, self.bits_length)
+
+        # Group bits into chunks of 16
+        bits_chunk = self.bits[start_index:end_index]
+        button_count = 0
+
+        for i in range(0, len(bits_chunk), 16):
+            # Get 16 bits for this button
+            sixteen_bits = bits_chunk[i : i + 16]
+
+            # Add spacing every 4 bits for readability (e.g., "0000 1111 0101 1010")
+            formatted_bits = " ".join(
+                [sixteen_bits[j : j + 4] for j in range(0, len(sixteen_bits), 4)]
+            )
+
+            bit_y_pos = self.bit_y + (
+                button_count * (self.bit_height + GUIConstants.COMPONENT_PADDING)
+            )
+
+            button = Button(
+                text=formatted_bits,
+                is_text_centered=True,
+                font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+                font_size=GUIConstants.BODY_FONT_SIZE,
+                screen_x=self.bit_x,
+                screen_y=bit_y_pos,
+                width=self.bit_width,
+                height=self.bit_height,
+                is_selected=False,
+                background_color=GUIConstants.BUTTON_BACKGROUND_COLOR,
+                font_color=GUIConstants.BUTTON_FONT_COLOR,
+            )
+            self.components.append(button)
+            button_count += 1
+
+    def _render(self):
+        """Render the screen with seed words"""
+        super()._render()
+
+        # Render all components
+        for component in self.components:
+            component.render()
+
+        self.renderer.show_image()
+
+    def _run(self):
+        self._render()  # Initial render
+        while True:
+            ret = self._run_callback()
+            if ret is not None:
+                logging.info("Exiting SeedCashSeedWordsScreen due to _run_callback")
+                return ret
+
+            user_input = self.hw_inputs.wait_for(
+                [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]
+                + HardwareButtonsConstants.KEYS__ANYCLICK
+            )
+
+            with self.renderer.lock:
+                if self.current_page == 0:  # select the next button
+                    self.components[self.selected_button].is_selected = False
+                    self.components[self.selected_button].render()
+                    self.selected_button = 0
+                    self.components[self.selected_button].is_selected = True
+                    self.components[self.selected_button].render()
+
+                    if user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                        self.current_page += 1
+                        self._create_components()
+                        # Keep selection on next button
+                        self.selected_button = 0
+                        self.components[self.selected_button].is_selected = True
+                        self._render()
+
+                else:
+                    if user_input == HardwareButtonsConstants.KEY_LEFT:
+                        # Move selection to back button
+                        if self.selected_button == 0:
+                            self.components[self.selected_button].is_selected = False
+                            self.components[self.selected_button].render()
+                            self.selected_button = 1
+                            self.components[self.selected_button].is_selected = True
+                            self.components[self.selected_button].render()
+
+                    elif user_input == HardwareButtonsConstants.KEY_RIGHT:
+                        # Move selection to next button
+                        if self.selected_button == 1:
+                            self.components[self.selected_button].is_selected = False
+                            self.components[self.selected_button].render()
+                            self.selected_button = 0
+                            self.components[self.selected_button].is_selected = True
+                            self.components[self.selected_button].render()
+                    elif user_input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                        if self.selected_button == 1:  # Back button
+                            if self.current_page > 1:
+                                # Go back to previous page
+                                self.current_page -= 1
+                                self._create_components()
+                                # Keep selection on back button
+                                self.selected_button = 1
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                            else:
+                                self.current_page = 0
+                                self._create_components()
+                                # Keep the selection on the next button
+                                self.selected_button = 0
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                        elif self.selected_button == 0:  # Next/Confirm button
+                            if self.current_page < self.total_pages - 1:
+                                # Go to next page
+                                self.current_page += 1
+                                self._create_components()
+                                # Keep selection on next button
+                                self.selected_button = 0
+                                self.components[self.selected_button].is_selected = True
+                                self._render()
+                            else:
+                                # Confirm action
+                                return "CONFIRM"
+
+            self.renderer.show_image()
+
+
+@dataclass
+class VisualGroupShareScreen(BaseTopNavScreen):
+    text: str = "Groups"
+    threshold: int = 1
+    total_members: int = 1
+
+    def __post_init__(self):
+        self.show_back_button = True
+        self.title = f"{self.text} Scheme"
+        super().__post_init__()
+
+        # Circle visualization parameters
+        self.radius_int = int(self.canvas_width // 5)
+        self.circle_radius = min(80, self.radius_int)
+        self.circle_center = (
+            self.canvas_width // 4,
+            GUIConstants.EDGE_PADDING
+            + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
+            + 20
+            + self.circle_radius,
+        )
+
+        # Groups controls (left side)
+        groups_x = (
+            self.canvas_width
+            - GUIConstants.EDGE_PADDING
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+        )
+
+        # Threshold controls (right side)
+        threshold_x = (
+            groups_x - GUIConstants.EDGE_PADDING - GUIConstants.TOP_NAV_BUTTON_SIZE
+        )
+
+        self.up_btns_y = GUIConstants.TOP_NAV_HEIGHT
+        self.down_btns_y = (
+            self.canvas_height
+            - GUIConstants.TOP_NAV_HEIGHT
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+        )
+
+        # Groups up arrow
+        self.total_members_up_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_UP,
+            screen_x=groups_x,
+            screen_y=self.up_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.total_members_up_button)
+
+        # Groups down arrow
+        self.total_members_down_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_DOWN,
+            screen_x=groups_x,
+            screen_y=self.down_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.total_members_down_button)
+
+        # Threshold up arrow
+        self.threshold_up_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_UP,
+            screen_x=threshold_x,
+            screen_y=self.up_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.threshold_up_button)
+
+        # Threshold down button
+        self.threshold_down_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_DOWN,
+            screen_x=threshold_x,
+            screen_y=self.down_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.threshold_down_button)
+
+        # Confirm button
+        self.confirm_button = Button(
+            text=_("Confirm"),
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.BUTTON_HEIGHT
+            - GUIConstants.EDGE_PADDING,
+            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
+            height=GUIConstants.BUTTON_HEIGHT,
+        )
+        self.components.append(self.confirm_button)
+
+        # Set initial selection
+        self.selected_key = 1
+        self.selected_button = 5
+
+        self.components[self.selected_key].is_selected = True
+        self.components[self.selected_button].is_selected = True
+
+    def _update_labels(self):
+        """Update the text labels with current values"""
+        label_y = (
+            2 * self.radius_int
+            + 3 * GUIConstants.COMPONENT_PADDING
+            + GUIConstants.BUTTON_HEIGHT
+        )
+        label_x = 4 * GUIConstants.BUTTON_HEIGHT
+
+        self.total_members_label = TextArea(
+            text=f"{self.text}: {self.total_members}",
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=label_y,
+            width=label_x - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
+        )
+
+        self.threshold_label = TextArea(
+            text=f"Threshold: {self.threshold}",
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=label_y
+            + GUIConstants.BUTTON_HEIGHT
+            - 2 * GUIConstants.EDGE_PADDING,
+            width=label_x - GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
+        )
+
+        self.total_members_label.render()
+        self.threshold_label.render()
+
+    def _draw_circle_segments(self):
+        """Draw the circle with segments showing groups and threshold"""
+        draw = ImageDraw.Draw(self.renderer.canvas)
+
+        # Ensure threshold doesn't exceed groups
+        self.threshold = min(self.threshold, self.total_members)
+
+        # Draw the full circle outline
+        draw.ellipse(
+            [
+                self.circle_center[0] - self.circle_radius,
+                self.circle_center[1] - self.circle_radius,
+                self.circle_center[0] + self.circle_radius,
+                self.circle_center[1] + self.circle_radius,
+            ],
+            outline=GUIConstants.ACCENT_COLOR,
+            width=2,
+        )
+
+        # If only 1 group, draw full circle filled or empty based on threshold
+        if self.total_members == 1:
+            fill_color = GUIConstants.ACCENT_COLOR if self.threshold >= 1 else "#333333"
+            draw.ellipse(
+                [
+                    self.circle_center[0] - self.circle_radius,
+                    self.circle_center[1] - self.circle_radius,
+                    self.circle_center[0] + self.circle_radius,
+                    self.circle_center[1] + self.circle_radius,
+                ],
+                fill=fill_color,
+                outline=GUIConstants.ACCENT_COLOR,
+                width=2,
+            )
+            return
+
+        # Calculate segment angles for multiple groups
+        angle_per_group = 360 / self.total_members
+        filled_color = GUIConstants.ACCENT_COLOR
+        empty_color = "#333333"  # Dark gray for unfilled segments
+
+        # Draw each segment
+        for i in range(self.total_members):
+            start_angle = i * angle_per_group - 90  # Start from top (-90 degrees)
+            end_angle = (i + 1) * angle_per_group - 90
+
+            # Determine if this segment should be filled (part of threshold)
+            fill_color = filled_color if i < self.threshold else empty_color
+
+            # Draw pie segment
+            draw.pieslice(
+                [
+                    self.circle_center[0] - self.circle_radius,
+                    self.circle_center[1] - self.circle_radius,
+                    self.circle_center[0] + self.circle_radius,
+                    self.circle_center[1] + self.circle_radius,
+                ],
+                start=start_angle,
+                end=end_angle,
+                fill=fill_color,
+                outline=GUIConstants.BACKGROUND_COLOR,
+                width=1,
+            )
+
+        # Draw dividing lines between segments (only if more than 1 group)
+        if self.total_members > 1:
+            for i in range(self.total_members):
+                # Calculate the angle for the dividing line at the start of each segment
+                line_angle = math.radians(i * angle_per_group - 90)  # Start from top
+                line_end = (
+                    self.circle_center[0] + self.circle_radius * math.cos(line_angle),
+                    self.circle_center[1] + self.circle_radius * math.sin(line_angle),
+                )
+                draw.line(
+                    [self.circle_center, line_end],
+                    fill=GUIConstants.BACKGROUND_COLOR,
+                    width=2,
+                )
+
+    def _render(self):
+        super()._render()
+        self._update_labels()
+        self._draw_circle_segments()  # Draw our custom visualization
+        for component in self.components:
+            component.render()
+        self.renderer.show_image()
+
+    def _run(self):
+        is_groups = True
+        while True:
+            input = self.hw_inputs.wait_for(HardwareButtonsConstants.ALL_KEYS)
+
+            with self.renderer.lock:
+                # Clear current selection
+                if input == HardwareButtonsConstants.KEY1:
+                    if is_groups:
+                        self.total_members += 1
+                        # Ensure threshold doesn't exceed groups when groups increase
+                        self.threshold = min(self.threshold, self.total_members)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 1  # Reset to first button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                    else:
+                        # Only increase threshold if it won't exceed groups
+                        if self.threshold < self.total_members:
+                            self.threshold += 1
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 3  # Reset to fourth button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                elif input == HardwareButtonsConstants.KEY2:
+                    if is_groups:
+                        is_groups = False
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 3  # Reset to fourth button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                    else:
+                        is_groups = True
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 1  # Reset to first button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                elif input == HardwareButtonsConstants.KEY3:
+                    if is_groups:
+                        if self.total_members > 1:  # Prevent groups from going below 1
+                            self.total_members = max(1, self.total_members - 1)
+                            # Ensure threshold doesn't exceed groups when groups decrease
+                            self.threshold = min(self.threshold, self.total_members)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 2
+                        self.components[self.selected_key].is_selected = True
+                    else:
+                        self.threshold = max(1, self.threshold - 1)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 4
+                        self.components[self.selected_key].is_selected = True
+                    self._render()
+
+                # Handle confirm button and back button
+                if input in HardwareButtonsConstants.KEYS__LEFT_RIGHT_UP_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    else:
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_PRESS:
+                    if self.top_nav.is_selected:
+                        return RET_CODE__BACK_BUTTON
+                    elif self.selected_button == 5:  # Confirm button
+                        return (self.threshold, self.total_members)
+
+                self._render()
