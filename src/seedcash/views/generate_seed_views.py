@@ -122,7 +122,7 @@ class ToolsCalcFinalWordShowFinalWordView(View):
     def __init__(self, last_bits: str = None):
         super().__init__()
 
-        wordlist = Seed.get_wordlist()
+        wordlist = self.controller.storage.get_wordlist
         # Prep the user's selected word / coin flips and the actual final word for
         # the display.
 

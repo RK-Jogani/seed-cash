@@ -47,7 +47,7 @@ class SeedMnemonicEntryView(View):
                 self.cur_word_index + 1
             ),  # Human-readable 1-indexing!
             initial_letters=list(self.cur_word) if self.cur_word else ["a"],
-            wordlist=Seed.get_wordlist(),
+            wordlist=self.controller.storage.get_wordlist,
         )
 
         if ret == RET_CODE__BACK_BUTTON:
@@ -169,9 +169,9 @@ class SeedFinalizeView(View):
         self.seed.set_passphrase("")
 
         # generate a fingerprint for the seed
-        self.seed.generate_seed()
+        self.seed.generate_wallet()
 
-        self.fingerprint = self.seed.get_fingerprint()
+        self.fingerprint = self.seed._wallet._fingerprint
         self.seed.set_passphrase(passphrase)
 
     def run(self):
@@ -289,7 +289,7 @@ class SeedReviewPassphraseView(View):
     def run(self):
         passphrase = self.seed.passphrase
         self.seed.set_passphrase(passphrase)
-        self.seed.generate_seed()  # Ensure the seed is generated with the passphrase
+        self.seed.generate_wallet()  # Ensure the seed is generated with the passphrase
 
         button_data = [self.EDIT, self.DONE]
 
@@ -318,7 +318,7 @@ class SeedReviewPassphraseExitDialogView(View):
 
         # NTBC
         self.seed = seed or self.controller.storage.get_seed()
-        self.fingerprint = self.seed.get_fingerprint()
+        self.fingerprint = self.seed._wallet._fingerprint
 
     def run(self):
         button_data = [
@@ -364,13 +364,17 @@ class SeedOptionsView(View):
         selected_menu_num = self.run_screen(
             load_seed_screens.SeedOptionsScreen,
             button_data=button_data,
-            fingerprint=self.seed.get_fingerprint(),
+            fingerprint=self.seed._wallet._fingerprint,
         )
 
         if button_data[selected_menu_num] == self.EXPORT_XPRIV:
-            return Destination(SeedCashQRView, view_args=dict(address=self.seed.xpriv))
+            return Destination(
+                SeedCashQRView, view_args=dict(address=self.seed._wallet._xpriv)
+            )
         elif button_data[selected_menu_num] == self.EXPORT_XPUB:
-            return Destination(SeedCashQRView, view_args=dict(address=self.seed.xpub))
+            return Destination(
+                SeedCashQRView, view_args=dict(address=self.seed._wallet._xpub)
+            )
         elif button_data[selected_menu_num] == self.GENERATE_ADDRESS:
             return Destination(SeedGenerateAddressView)
         elif button_data[selected_menu_num] == self.SIGN_TRANSACTION:
@@ -382,7 +386,7 @@ class SeedOptionsView(View):
 class SeedGenerateAddressView(View):
     def __init__(self):
         super().__init__()
-        self.xpub = self.controller.storage.seed.xpub
+        self.xpub = self.controller.storage.seed._wallet._xpub
 
     def run(self):
         menu = self.run_screen(
@@ -473,7 +477,7 @@ class SeedDiscardView(View):
     def run(self):
         button_data = [self.KEEP, self.DISCARD]
 
-        fingerprint = self.seed.get_fingerprint()
+        fingerprint = self.seed._wallet._fingerprint
         # TRANSLATOR_NOTE: Inserts the seed fingerprint
         text = _("Wipe seed {} from the device?").format(fingerprint)
         selected_menu_num = self.run_screen(

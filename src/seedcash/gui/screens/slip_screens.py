@@ -14,12 +14,13 @@ from seedcash.gui.screens.screen import (
     RET_CODE__BACK_BUTTON,
     BaseTopNavScreen,
     BaseScreen,
-    ButtonListScreen,
+    SeedCashButtonListWithNav,
 )
 from seedcash.hardware.buttons import HardwareButtonsConstants
 from dataclasses import dataclass
 from gettext import gettext as _
 from PIL import Image, ImageDraw
+from seedcash.models import visual_hash as vh
 
 logger = logging.getLogger(__name__)
 
@@ -389,6 +390,27 @@ class SlipBitsScreen(BaseScreen):
 
 
 @dataclass
+class GroupShareListScreen(SeedCashButtonListWithNav):
+    fingerprint: str = None
+
+    def __post_init__(self):
+        if self.fingerprint:
+            self.title = self.fingerprint
+        super().__post_init__()
+
+        icon_size = GUIConstants.ICON_FONT_SIZE + 12
+
+        if self.fingerprint:
+            fingerprint_image = vh.generate_lifehash(self.fingerprint)
+            self.paste_images.append(
+                (
+                    fingerprint_image.resize((icon_size, icon_size)),
+                    (3 * GUIConstants.EDGE_PADDING, GUIConstants.EDGE_PADDING),
+                )
+            )
+
+
+@dataclass
 class VisualGroupShareScreen(BaseTopNavScreen):
     text: str = "Groups"
     threshold: int = 1
@@ -547,7 +569,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
 
         # If only 1 group, draw full circle filled or empty based on threshold
         if self.total_members == 1:
-            fill_color = GUIConstants.ACCENT_COLOR if self.threshold >= 1 else "#333333"
+            fill_color = "white" if self.threshold >= 1 else "#333333"
             draw.ellipse(
                 [
                     self.circle_center[0] - self.circle_radius,
@@ -556,14 +578,13 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                     self.circle_center[1] + self.circle_radius,
                 ],
                 fill=fill_color,
-                outline=GUIConstants.ACCENT_COLOR,
                 width=2,
             )
             return
 
         # Calculate segment angles for multiple groups
         angle_per_group = 360 / self.total_members
-        filled_color = GUIConstants.ACCENT_COLOR
+        filled_color = "white"
         empty_color = "#333333"  # Dark gray for unfilled segments
 
         # Draw each segment
@@ -613,6 +634,373 @@ class VisualGroupShareScreen(BaseTopNavScreen):
         self.renderer.show_image()
 
     def _run(self):
+        is_groups = True
+        while True:
+            input = self.hw_inputs.wait_for(HardwareButtonsConstants.ALL_KEYS)
+
+            with self.renderer.lock:
+                # Clear current selection
+                if input == HardwareButtonsConstants.KEY1:
+                    if is_groups:
+                        self.total_members += 1
+                        # Ensure threshold doesn't exceed groups when groups increase
+                        self.threshold = min(self.threshold, self.total_members)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 1  # Reset to first button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                    else:
+                        # Only increase threshold if it won't exceed groups
+                        if self.threshold < self.total_members:
+                            self.threshold += 1
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 3  # Reset to fourth button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                elif input == HardwareButtonsConstants.KEY2:
+                    if is_groups:
+                        is_groups = False
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 3  # Reset to fourth button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                    else:
+                        is_groups = True
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 1  # Reset to first button
+                        self.components[self.selected_key].is_selected = True
+                        self.components[self.selected_key].render()
+                elif input == HardwareButtonsConstants.KEY3:
+                    if is_groups:
+                        if self.total_members > 1:  # Prevent groups from going below 1
+                            self.total_members = max(1, self.total_members - 1)
+                            # Ensure threshold doesn't exceed groups when groups decrease
+                            self.threshold = min(self.threshold, self.total_members)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 2
+                        self.components[self.selected_key].is_selected = True
+                    else:
+                        self.threshold = max(1, self.threshold - 1)
+                        self.components[self.selected_key].is_selected = False
+                        self.components[self.selected_key].render()
+                        self.selected_key = 4
+                        self.components[self.selected_key].is_selected = True
+                    self._render()
+
+                # Handle confirm button and back button
+                if input in HardwareButtonsConstants.KEYS__LEFT_RIGHT_UP_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    else:
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_PRESS:
+                    if self.top_nav.is_selected:
+                        return RET_CODE__BACK_BUTTON
+                    elif self.selected_button == 5:  # Confirm button
+                        return (self.threshold, self.total_members)
+
+                self._render()
+
+
+@dataclass
+class VisualLoadedSchemeScreen(BaseTopNavScreen):
+    threshold: int = 1
+    total_members: int = 1
+
+    def __post_init__(self):
+        self.show_back_button = True
+        self.title = "Group No:"
+        super().__post_init__()
+
+        # Group Circle
+        self.group_radius_int = int(self.canvas_width // 6)
+        self.group_circle_radius = min(80, self.group_radius_int)
+        self.group_circle_center = (
+            self.canvas_width // 5,
+            GUIConstants.EDGE_PADDING
+            + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
+            + 20
+            + self.group_circle_radius,
+        )
+
+        # Share Circle
+        self.share_radius_int = int(self.canvas_width // 6)
+        self.share_circle_radius = min(80, self.share_radius_int)
+        self.share_circle_center = (
+            self.canvas_width // 5 * 3,
+            GUIConstants.EDGE_PADDING
+            + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
+            + 20
+            + self.share_circle_radius,
+        )
+
+        # Groups controls (left side)
+        groups_x = (
+            self.canvas_width
+            - GUIConstants.EDGE_PADDING
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+        )
+
+        self.up_btns_y = GUIConstants.TOP_NAV_HEIGHT
+        self.down_btns_y = (
+            self.canvas_height
+            - GUIConstants.TOP_NAV_HEIGHT
+            - GUIConstants.TOP_NAV_BUTTON_SIZE
+        )
+
+        # Groups up arrow
+        self.up_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_UP,
+            screen_x=groups_x,
+            screen_y=self.up_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.up_button)
+
+        # Groups down arrow
+        self.down_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_DOWN,
+            screen_x=groups_x,
+            screen_y=self.down_btns_y,
+            font_size=GUIConstants.BODY_FONT_SIZE - 3,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+        self.components.append(self.down_button)
+
+        edit_review_width = 108
+
+        # Edit & Review button
+        self.edit_review_button = Button(
+            text=_("Edit & Review"),
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.BUTTON_HEIGHT
+            - GUIConstants.EDGE_PADDING,
+            width=edit_review_width,
+            font_size=GUIConstants.BUTTON_FONT_SIZE - 4,
+            height=GUIConstants.BUTTON_HEIGHT,
+        )
+        self.components.append(self.edit_review_button)
+
+        # Add Share button
+        self.add_share_button = Button(
+            text=_(" Add Share"),
+            screen_x=edit_review_width + 2 * GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.BUTTON_HEIGHT
+            - GUIConstants.EDGE_PADDING,
+            font_size=GUIConstants.BUTTON_FONT_SIZE - 4,
+            width=edit_review_width,
+            height=GUIConstants.BUTTON_HEIGHT,
+        )
+        self.components.append(self.add_share_button)
+
+        # Set initial selection
+        self.selected_key = 0
+        self.selected_button = 1
+
+        self.components[self.selected_key].is_selected = True
+        self.components[self.selected_button].is_selected = True
+
+    def _update_labels(self):
+        """Update the text labels with current values"""
+        label_y = (
+            max(self.group_circle_center[1], self.share_circle_center[1])
+            + self.group_circle_radius
+            + GUIConstants.COMPONENT_PADDING
+        )
+
+        # Group label (left side)
+        self.groups_text = TextArea(
+            text=f"Groups: {self.total_members}",
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=label_y,
+            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=True,
+        )
+
+        self.groups_progress_text = TextArea(
+            text=f"Progress: {self.total_members}",
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=label_y
+            + GUIConstants.BUTTON_HEIGHT
+            - 2 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=True,
+        )
+
+        self.group_threshold_text = TextArea(
+            text=f"Threshold: {self.threshold}",
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=label_y
+            + 2 * GUIConstants.BUTTON_HEIGHT
+            - 3 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=True,
+        )
+
+        # Share label (right side)
+        self.members_threshold_text = TextArea(
+            text=f"Members: {self.threshold}",
+            screen_x=self.canvas_width // 2 + GUIConstants.EDGE_PADDING,
+            screen_y=label_y,
+            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=True,
+        )
+
+        self.members_progress_text = TextArea(
+            text=f"Progress: {self.threshold}",
+            screen_x=self.canvas_width // 2 + GUIConstants.EDGE_PADDING,
+            screen_y=label_y
+            + GUIConstants.BUTTON_HEIGHT
+            - 2 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=True,
+        )
+
+        self.groups_text.render()
+        self.groups_progress_text.render()
+        self.group_threshold_text.render()
+        self.members_threshold_text.render()
+        self.members_progress_text.render()
+
+    def _draw_circle_segments(self):
+        """Draw both circles with segments showing groups and threshold"""
+        draw = ImageDraw.Draw(self.renderer.canvas)
+
+        # Ensure threshold doesn't exceed groups
+        self.threshold = min(self.threshold, self.total_members)
+
+        # Draw Group Circle (left)
+        self._draw_single_circle(
+            draw,
+            self.group_circle_center,
+            self.group_circle_radius,
+            self.total_members,
+            self.total_members,
+            title="Groups",
+        )
+
+        # Draw Share Circle (right)
+        self._draw_single_circle(
+            draw,
+            self.share_circle_center,
+            self.share_circle_radius,
+            self.total_members,
+            self.threshold,
+            title="Shares",
+        )
+
+    def _draw_single_circle(
+        self, draw, center, radius, total_segments, filled_segments, title=""
+    ):
+        """Helper method to draw a single circle with segments"""
+        # Draw the full circle outline
+        draw.ellipse(
+            [
+                center[0] - radius,
+                center[1] - radius,
+                center[0] + radius,
+                center[1] + radius,
+            ],
+            outline=GUIConstants.ACCENT_COLOR,
+            width=2,
+        )
+
+        # If only 1 segment, draw full circle filled or empty
+        if total_segments == 1:
+            fill_color = "white" if filled_segments >= 1 else "#333333"
+            draw.ellipse(
+                [
+                    center[0] - radius,
+                    center[1] - radius,
+                    center[0] + radius,
+                    center[1] + radius,
+                ],
+                fill=fill_color,
+                width=2,
+            )
+            return
+
+        # Calculate segment angles for multiple segments
+        angle_per_segment = 360 / total_segments
+        filled_color = "white"
+        empty_color = "#333333"  # Dark gray for unfilled segments
+
+        # Draw each segment
+        for i in range(total_segments):
+            start_angle = i * angle_per_segment - 90  # Start from top (-90 degrees)
+            end_angle = (i + 1) * angle_per_segment - 90
+
+            # Determine if this segment should be filled
+            fill_color = filled_color if i < filled_segments else empty_color
+
+            # Draw pie segment
+            draw.pieslice(
+                [
+                    center[0] - radius,
+                    center[1] - radius,
+                    center[0] + radius,
+                    center[1] + radius,
+                ],
+                start=start_angle,
+                end=end_angle,
+                fill=fill_color,
+                outline=GUIConstants.BACKGROUND_COLOR,
+                width=1,
+            )
+
+        # Draw dividing lines between segments (only if more than 1 segment)
+        if total_segments > 1:
+            for i in range(total_segments):
+                # Calculate the angle for the dividing line
+                line_angle = math.radians(i * angle_per_segment - 90)
+                line_end = (
+                    center[0] + radius * math.cos(line_angle),
+                    center[1] + radius * math.sin(line_angle),
+                )
+                draw.line(
+                    [center, line_end],
+                    fill=GUIConstants.BACKGROUND_COLOR,
+                    width=2,
+                )
+
+    def _render(self):
+        super()._render()
+        self._update_labels()
+        self._draw_circle_segments()  # Draw our custom visualization
+        for component in self.components:
+            component.render()
+        self.renderer.show_image()
+
+    def _run(self):
+        pass
         is_groups = True
         while True:
             input = self.hw_inputs.wait_for(HardwareButtonsConstants.ALL_KEYS)

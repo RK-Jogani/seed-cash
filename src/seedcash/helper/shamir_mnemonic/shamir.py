@@ -22,14 +22,13 @@
 import hmac
 import secrets
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Iterator, List, NamedTuple, Sequence, Set, Tuple
+from typing import Any, Dict, Iterator, List, NamedTuple, Sequence, Set, Tuple
 
 from . import cipher
 from .constants import (
     DIGEST_INDEX,
     DIGEST_LENGTH_BYTES,
     GROUP_PREFIX_LENGTH_WORDS,
-    ID_EXP_LENGTH_WORDS,
     ID_LENGTH_BITS,
     MAX_SHARE_COUNT,
     MIN_STRENGTH_BITS,
@@ -271,25 +270,6 @@ def _recover_secret(threshold: int, shares: Sequence[RawShare]) -> bytes:
     return shared_secret
 
 
-def decode_mnemonics(mnemonics: Iterable[str]) -> Dict[int, ShareGroup]:
-    common_params: Set[ShareCommonParameters] = set()
-    groups: Dict[int, ShareGroup] = {}
-    for mnemonic in mnemonics:
-        share = Share.from_mnemonic(mnemonic)
-        common_params.add(share.common_parameters())
-        group = groups.setdefault(share.group_index, ShareGroup())
-        group.add(share)
-
-    if len(common_params) != 1:
-        raise MnemonicError(
-            "Invalid set of mnemonics. "
-            f"All mnemonics must begin with the same {ID_EXP_LENGTH_WORDS} words, "
-            "must have the same group threshold and the same group count."
-        )
-
-    return groups
-
-
 def split_ems(
     group_threshold: int,
     groups: Sequence[Tuple[int, int]],
@@ -362,45 +342,6 @@ def _random_identifier() -> int:
     return identifier & ((1 << ID_LENGTH_BITS) - 1)
 
 
-def generate_mnemonics(
-    group_threshold: int,
-    groups: Sequence[Tuple[int, int]],
-    master_secret: bytes,
-    passphrase: bytes = b"",
-    extendable: bool = True,
-    iteration_exponent: int = 1,
-) -> List[List[str]]:
-    """
-    Split a master secret into mnemonic shares using Shamir's secret sharing scheme.
-
-    The supplied Master Secret is encrypted by the passphrase (empty passphrase is used
-    if none is provided) and split into a set of mnemonic shares.
-
-    This is the user-friendly method to back up a pre-existing secret with the Shamir
-    scheme, optionally protected by a passphrase.
-
-    :param group_threshold: The number of groups required to reconstruct the master secret.
-    :param groups: A list of (member_threshold, member_count) pairs for each group, where member_count
-        is the number of shares to generate for the group and member_threshold is the number of members required to
-        reconstruct the group secret.
-    :param master_secret: The master secret to split.
-    :param passphrase: The passphrase used to encrypt the master secret.
-    :param int iteration_exponent: The encryption iteration exponent.
-    :return: List of groups mnemonics.
-    """
-    if not all(32 <= c <= 126 for c in passphrase):
-        raise ValueError(
-            "The passphrase must contain only printable ASCII characters (code points 32-126)."
-        )
-
-    identifier = _random_identifier()
-    encrypted_master_secret = EncryptedMasterSecret.from_master_secret(
-        master_secret, passphrase, identifier, extendable, iteration_exponent
-    )
-    grouped_shares = split_ems(group_threshold, groups, encrypted_master_secret)
-    return [[share.mnemonic() for share in group] for group in grouped_shares]
-
-
 def recover_ems(groups: Dict[int, ShareGroup]) -> EncryptedMasterSecret:
     """
     Combine shares, recover metadata and the Encrypted Master Secret.
@@ -414,33 +355,26 @@ def recover_ems(groups: Dict[int, ShareGroup]) -> EncryptedMasterSecret:
     :return: Encrypted Master Secret
     """
 
+    incomplete_groups = []
+    # finding incomplete groups
+    for group_index, group in groups.items():
+        if not group.is_complete():
+            incomplete_groups.append(group_index)
+
+    # deleting incomplete groups
+    for group_index in incomplete_groups:
+        del groups[group_index]
+
     if not groups:
-        raise MnemonicError("The set of shares is empty.")
+        raise MnemonicError("The set of shares is empty. or all groups are incomplete.")
 
     params = next(iter(groups.values())).common_parameters()
 
     if len(groups) < params.group_threshold:
         raise MnemonicError(
             "Insufficient number of mnemonic groups. "
-            f"The required number of groups is {params.group_threshold}."
+            f"The required number of complete groups is {params.group_threshold}."
         )
-
-    if len(groups) != params.group_threshold:
-        raise MnemonicError(
-            "Wrong number of mnemonic groups. "
-            f"Expected {params.group_threshold} groups, "
-            f"but {len(groups)} were provided."
-        )
-
-    for group in groups.values():
-        if len(group) != group.member_threshold():
-            share_words = next(iter(group)).words()
-            prefix = " ".join(share_words[:GROUP_PREFIX_LENGTH_WORDS])
-            raise MnemonicError(
-                "Wrong number of mnemonics. "
-                f'Expected {group.member_threshold()} mnemonics starting with "{prefix} ...", '
-                f"but {len(group)} were provided."
-            )
 
     group_shares = [
         RawShare(
@@ -454,24 +388,3 @@ def recover_ems(groups: Dict[int, ShareGroup]) -> EncryptedMasterSecret:
     return EncryptedMasterSecret(
         params.identifier, params.extendable, params.iteration_exponent, ciphertext
     )
-
-
-def combine_mnemonics(mnemonics: Iterable[str], passphrase: bytes = b"") -> bytes:
-    """
-    Combine mnemonic shares to obtain the master secret which was previously split
-    using Shamir's secret sharing scheme.
-
-    This is the user-friendly method to recover a backed-up secret optionally protected
-    by a passphrase.
-
-    :param mnemonics: List of mnemonics.
-    :param passphrase: The passphrase used to encrypt the master secret.
-    :return: The master secret.
-    """
-
-    if not mnemonics:
-        raise MnemonicError("The list of mnemonics is empty.")
-
-    groups = decode_mnemonics(mnemonics)
-    encrypted_master_secret = recover_ems(groups)
-    return encrypted_master_secret.decrypt(passphrase)

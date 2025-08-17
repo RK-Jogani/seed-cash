@@ -287,6 +287,17 @@ class SeedCashChooseWordsView(View):
                 return Destination(
                     SeedSlipEntryView,
                 )
+
+            else:
+                # If the user wants to enter a SLIP39 seed, we set the mnemonic length.
+                from seedcash.views.slip_views import SeedSlipMnemonicEntryView
+
+                return Destination(
+                    SeedSlipMnemonicEntryView,
+                    view_args={
+                        "cur_word_index": 0,
+                    },
+                )
         else:
             if self.is_random_seed:
                 # If the user wants a random seed, we generate it here.

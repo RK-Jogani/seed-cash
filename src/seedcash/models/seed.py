@@ -1,10 +1,10 @@
 import logging
-import unicodedata
 import hashlib
 
 from seedcash.models.btc_functions import BitcoinFunctions as bf
 from typing import List
 from seedcash.gui.components import load_txt
+from seedcash.models.wallet import Wallet
 
 logger = logging.getLogger(__name__)
 
@@ -17,29 +17,43 @@ class Seed:
     def __init__(self, mnemonic: List[str] = None) -> None:
 
         if not mnemonic:
-            raise Exception("Must initialize a Seed with a mnemonic List[str]")
+            raise Exception(
+                "Must initialize a Seed with a mnemonic List[str] or a master_secret"
+            )
 
-        # variables
-        self._mnemonic = mnemonic
-        self._passphrase: str = ""
-        self.xpriv: str = ""
-        self.xpub: str = ""
-        self.fingerprint: str = ""
+        self.mnemonic = mnemonic
+        self.passphrase: str = ""
+        self.wallet: Wallet = None
 
-        self._validate_mnemonic()
+        self.validate_mnemonic()
 
-    # this method will be replace by seedcash
-    @staticmethod
-    def get_wordlist() -> List[str]:
-        # getting world list from resource/bip39.txt
-        list39 = load_txt("bip39.txt")
-        return list39
+    @property
+    def _mnemonic(self) -> str:
+        return " ".join(self.mnemonic)
 
-    def _validate_mnemonic(self):
+    @property
+    def _passphrase(self):
+        return self.passphrase
+
+    @property
+    def _wallet(self) -> Wallet:
+        return self.wallet
+
+    @property
+    def wordlist(self) -> List[str]:
+        return load_txt("bip39.txt")
+
+    def get_mnemonic_list(self) -> List[str]:
+        return self.mnemonic
+
+    def set_passphrase(self, passphrase: str):
+        self.passphrase = passphrase
+
+    def validate_mnemonic(self) -> bool:
         try:
             # Validate wordlist membership first
             list_index_bi = []
-            for word in self._mnemonic:
+            for word in self.get_mnemonic_list():
                 try:
                     index = self.wordlist.index(word)
                     list_index_bi.append(bin(index)[2:].zfill(11))
@@ -100,8 +114,7 @@ class Seed:
             logger.exception("Unexpected error during validation")
             raise InvalidSeedException(f"Validation error: {str(e)}")
 
-    def generate_seed(self) -> bytes:
-        hexa_seed = bf.seed_generator(self.mnemonic_str, self.passphrase)
+    def generate_wallet(self):
 
         (
             depth,
@@ -110,66 +123,12 @@ class Seed:
             account_chain_code,
             account_key,
             account_public_key,
-        ) = bf.derivation_m_44_145_0(hexa_seed)
-
-        self.xpriv = bf.xpriv_encode(
-            depth, father_fingerprint, child_index, account_chain_code, account_key
+        ) = bf.bip39_protocol(self._mnemonic, self.passphrase)
+        self.wallet = Wallet(
+            depth=depth,
+            father_fingerprint=father_fingerprint,
+            child_index=child_index,
+            account_chain_code=account_chain_code,
+            account_key=account_key,
+            account_public_key=account_public_key,
         )
-
-        self.xpub = bf.xpub_encode(
-            depth,
-            father_fingerprint,
-            child_index,
-            account_chain_code,
-            account_public_key,
-        )
-
-        self.fingerprint = bf.fingerprint_hex(hexa_seed)
-
-    @property
-    def mnemonic_str(self) -> str:
-        return " ".join(self._mnemonic)
-
-    @property
-    def mnemonic_list(self) -> List[str]:
-        return self._mnemonic
-
-    @property
-    def wordlist_language_code(self) -> str:
-        return self._wordlist_language_code
-
-    @property
-    def mnemonic_display_str(self) -> str:
-        return unicodedata.normalize("NFC", " ".join(self._mnemonic))
-
-    @property
-    def mnemonic_display_list(self) -> List[str]:
-        return unicodedata.normalize("NFC", " ".join(self._mnemonic)).split()
-
-    @property
-    def has_passphrase(self):
-        return self._passphrase != ""
-
-    @property
-    def passphrase(self):
-        return self._passphrase
-
-    @property
-    def passphrase_display(self):
-        return unicodedata.normalize("NFC", self._passphrase)
-
-    def set_passphrase(self, passphrase: str):
-        self._passphrase = passphrase
-
-    @property
-    def wordlist(self) -> List[str]:
-        return Seed.get_wordlist()
-
-    def get_fingerprint(self) -> str:
-        return self.fingerprint
-
-    ### override operators
-    def __eq__(self, other):
-        if isinstance(other, Seed):
-            return self.seed_bytes == other.seed_bytes
-        return False

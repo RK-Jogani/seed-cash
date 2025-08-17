@@ -6,7 +6,7 @@ from PIL.Image import Image
 
 from seedcash.gui.toast import BaseToastOverlayManagerThread
 from seedcash.models.seed import Seed
-from seedcash.models.seed_storage import SeedStorage
+from seedcash.models.storage import SeedStorage
 from seedcash.models.settings import Settings
 from seedcash.models.settings_definition import SettingsConstants
 from seedcash.models.singleton import Singleton
@@ -64,8 +64,8 @@ class BackgroundImportThread(BaseThread):
 
         # # Do costly initializations
         time_import("seedcash.models.btc_functions")
-        time_import("seedcash.models.seed_storage")
-        from seedcash.models.seed_storage import SeedStorage
+        time_import("seedcash.models.storage")
+        from seedcash.models.storage import SeedStorage
 
         Controller.get_instance()._storage = SeedStorage()
 

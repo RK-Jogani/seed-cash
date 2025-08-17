@@ -1497,7 +1497,7 @@ class TopNav(BaseComponent):
 
     font_color: str = GUIConstants.BODY_FONT_COLOR
     show_back_button: bool = True
-    show_power_button: bool = False
+    show_check_button: bool = False
     is_selected: bool = False
 
     def __post_init__(self):
@@ -1522,9 +1522,9 @@ class TopNav(BaseComponent):
                 height=GUIConstants.TOP_NAV_BUTTON_SIZE,
             )
 
-        if self.show_power_button:
+        if self.show_check_button:
             self.right_button = IconButton(
-                icon_name=SeedCashIconsConstants.POWER,
+                icon_name=SeedCashIconsConstants.CHECK,
                 icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
                 screen_x=self.width
                 - GUIConstants.TOP_NAV_BUTTON_SIZE
@@ -1577,14 +1577,14 @@ class TopNav(BaseComponent):
 
     @property
     def selected_button(self):
-        from .screens import RET_CODE__BACK_BUTTON, RET_CODE__POWER_BUTTON
+        from .screens import RET_CODE__BACK_BUTTON, RET_CODE__CHECK_BUTTON
 
         if not self.is_selected:
             return None
         if self.show_back_button:
             return RET_CODE__BACK_BUTTON
-        if self.show_power_button:
-            return RET_CODE__POWER_BUTTON
+        if self.show_check_button:
+            return RET_CODE__CHECK_BUTTON
 
     def render(self):
         self.title.render()
@@ -1594,7 +1594,7 @@ class TopNav(BaseComponent):
         if self.show_back_button:
             self.left_button.is_selected = self.is_selected
             self.left_button.render()
-        if self.show_power_button:
+        if self.show_check_button:
             self.right_button.is_selected = self.is_selected
             self.right_button.render()
 
