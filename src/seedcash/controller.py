@@ -73,7 +73,8 @@ class BackgroundImportThread(BaseThread):
 
         time_import("seedcash.views.load_seed_views")
         time_import("seedcash.views.generate_seed_views")
-        time_import("seedcash.views.slip_views")
+        time_import("seedcash.views.load_slip_views")
+        time_import("seedcash.views.generate_slip_views")
 
 
 class Controller(Singleton):
@@ -203,8 +204,8 @@ class Controller(Singleton):
                 f"There is no seed_num {seed_num}; only {len(self.storage.seeds)} in memory."
             )
 
-    def discard_seed(self):
-        self.storage.seed = None
+    def discard_wallet(self):
+        self.storage.wallet = None
 
     def pop_prev_from_back_stack(self):
         if len(self.back_stack) > 0:

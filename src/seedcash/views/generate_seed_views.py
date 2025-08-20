@@ -87,11 +87,12 @@ class ShowWordsView(View):
         if confirm == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
         elif confirm == "CONFIRM":
-            from seedcash.views.load_seed_views import SeedFinalizeView
+            from seedcash.views.wallet_views import WalletFinalizeView
 
+            self.controller.storage.convert_mnemonic_to_seed()
             return Destination(
-                SeedFinalizeView,
-                view_args={"seed": self.controller.storage.get_generated_seed()},
+                WalletFinalizeView,
+                view_args={"wallet": self.controller.storage.get_seed_wallet()},
             )
 
 

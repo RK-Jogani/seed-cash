@@ -49,16 +49,23 @@ class SeedStorage:
         ):
             if not self.seed:
                 raise InvalidSeedException("Seed must be initialized for BIP39.")
+            self.seed.set_passphrase(self.passphrase)
             self.seed.generate_wallet()
             self.wallet = self.seed._wallet
+
         elif (
             Settings.get_instance().get_value(SettingsConstants.SETTING__SEED_PROTOCOL)
             == "SLIP39"
         ):
             if not self.scheme:
                 raise InvalidSeedException("Scheme must be initialized for SLIP39.")
+            self.scheme.set_passphrase(self.passphrase)
             self.scheme.generate_wallet()
             self.wallet = self.scheme._wallet
+
+    def discard_after_create_wallet(self):
+        self.discard_scheme()
+        self.discard_seed()
 
     def discard_wallet(self):
         """
@@ -103,6 +110,16 @@ class SeedStorage:
     def discard_mnemonic(self):
         self._mnemonic = None
 
+    # Passphrase management
+    @property
+    def _passphrase(self):
+        if not self.passphrase:
+            raise ("Passphrase not initialize")
+        return self.passphrase
+
+    def set_passphrase(self, passphrase: str):
+        self.passphrase = passphrase
+
     # Seed management
     @property
     def _seed(self) -> Seed:
@@ -114,17 +131,26 @@ class SeedStorage:
         self.seed = Seed(mnemonic=self._mnemonic)
         self.discard_mnemonic()
 
-    def get_generated_seed(self) -> str:
-        if not self._mnemonic:
-            raise InvalidSeedException("Mnemonic has not been initialized")
-        else:
-            logger.info("Generating fingerprint from mnemonic: %s", self._mnemonic)
-            mnemonic_seed = Seed(mnemonic=self._mnemonic)
-            mnemonic_seed.generate_wallet()
-            return mnemonic_seed
+    def get_seed_wallet(self) -> Wallet:
+        """
+        Get the wallet associated with the current seed.
+        """
+        if not self.seed:
+            raise InvalidSeedException("Seed has not been initialized")
+
+        self.seed.set_passphrase(self.passphrase)
+        self.seed.generate_wallet()
+
+        return self.seed._wallet
+
+    def discard_seed(self):
+        """
+        Discard the current seed.
+        """
+        self.seed = None
+        logger.info("Seed discarded.")
 
     # Scheme management
-
     @property
     def _scheme(self) -> Scheme:
         if not self.scheme:
@@ -151,6 +177,7 @@ class SeedStorage:
         self.scheme = Scheme(
             scheme_parameters=self.scheme_params,
         )
+        self.scheme.set_passphrase(self.passphrase)
         self.scheme.generate_mnemonics()
         self.scheme.generate_wallet()
         logger.info("Scheme generated with parameters: %s", self.scheme_params)
@@ -168,11 +195,13 @@ class SeedStorage:
                     mnemonics=self._mnemonic,
                 )
             except Exception as e:
+                logger.info("Scheme Invalid:", e, self.scheme)
                 raise InvalidSeedException(
                     "Invalid mnemonic provided for scheme creation"
                 ) from e
+                l
 
-            self.discard_mnemonic()
+            self.discard_slip_mnemonic()
             logger.info("New scheme created with the current mnemonic.")
             return
 
@@ -180,8 +209,15 @@ class SeedStorage:
             raise InvalidSeedException("Scheme generated with parameters already")
 
         self.scheme.add_share(self._mnemonic)
-        self.discard_mnemonic()
+        self.discard_slip_mnemonic()
         logger.info("Share added to the current scheme.")
+
+    def discard_slip_mnemonic(self):
+        """
+        Discard the current mnemonic used for SLIP39 scheme.
+        """
+        self._mnemonic = [None] * len(self._mnemonic) if self._mnemonic else None
+        logger.info("SLIP39 mnemonic discarded.")
 
     def discard_scheme(self):
         """

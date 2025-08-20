@@ -8,10 +8,6 @@ from ecdsa import SECP256k1, SigningKey, VerifyingKey
 from ecdsa.util import string_to_number, number_to_string
 from seedcash.gui.components import load_txt
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 
 class BitcoinFunctions:
 
@@ -95,15 +91,7 @@ class BitcoinFunctions:
     def get_mnemonic(incomplete_mnemonic, last_bits):
 
         len_checksum = 11 - len(last_bits)
-
-        logger.info(
-            "Generating mnemonic from incomplete mnemonic: %s and last bits: %s",
-            incomplete_mnemonic,
-            last_bits,
-        )
         string_mnemonic = " ".join(incomplete_mnemonic)
-
-        logger.info("String mnemonic: %s", string_mnemonic)
 
         list39 = BitcoinFunctions.dictionary_BIP39()
         list_mnemonic = string_mnemonic.strip().split()
@@ -494,14 +482,8 @@ class BitcoinFunctions:
         # Combine entropy and checksum
         full_binary = entropy_binary + checksum
 
-        logger.info(f"Full binary for mnemonic: {full_binary}")
-
         # Convert to mnemonic words using existing function
         mnemonic = BitcoinFunctions.binmnemonic_to_mnemonic(full_binary)
-
-        logger.info(
-            f"Generated {num_words}-word mnemonic with {entropy_bits} bits of entropy"
-        )
 
         return mnemonic
 
@@ -534,6 +516,7 @@ class BitcoinFunctions:
     @staticmethod
     def slip39_protocol(master_secret: str):
         # getting private master key and chain code using the master secret
+
         hmac_hash = hmac.new(
             b"Bitcoin seed", bytes.fromhex(master_secret), hashlib.sha512
         ).digest()

@@ -1,6 +1,7 @@
 import logging
 
 from gettext import gettext as _
+from seedcash.gui.screens import load_seed_screens
 from seedcash.gui.screens.load_seed_screens import SeedMnemonicEntryScreen
 from seedcash.gui.screens.screen import (
     RET_CODE__BACK_BUTTON,
@@ -15,109 +16,14 @@ from seedcash.views.view import (
     ButtonOption,
     MainMenuView,
 )
-from seedcash.views.load_seed_views import (
-    SeedFinalizeView,
-    SeedMnemonicInvalidView,
-)
+
 
 from seedcash.models.btc_functions import BitcoinFunctions as bf
 from seedcash.gui.screens.slip_screens import (
     GroupShareListScreen,
-    VisualLoadedSchemeScreen,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# For Loading Slip39 Seed Views
-# groups = shamir.decode_mnemonics
-class SeedSlipMnemonicEntryView(View):
-    """
-    View for entering a Slip39 seed phrase.
-    """
-
-    def __init__(self, cur_word_index: int = 0):
-        super().__init__()
-        # counter
-        self.cur_word_index = cur_word_index
-        # getting the index
-        self.cur_word = self.controller.storage.get_mnemonic_word(cur_word_index)
-        # for the generation of seed
-
-    def run(self):
-        ret = self.run_screen(
-            SeedMnemonicEntryScreen,
-            # TRANSLATOR_NOTE: Inserts the word number (e.g. "Seed Word #6")
-            title=_("Seed Word #{}").format(
-                self.cur_word_index + 1
-            ),  # Human-readable 1-indexing!
-            initial_letters=list(self.cur_word) if self.cur_word else ["a"],
-            wordlist=self.controller.storage.get_wordlist,
-        )
-
-        if ret == RET_CODE__BACK_BUTTON:
-            # remove the cur_word
-            self.controller.storage.update_mnemonic(None, self.cur_word_index)
-
-            if (
-                self.cur_word_index == 0
-                and self.controller.storage.mnemonic
-                != [None] * self.controller.storage.mnemonic_length
-            ):
-                return Destination(SeedMnemonicInvalidView, skip_current_view=True)
-
-            return Destination(BackStackView)
-
-        # ret will be our new mnemonic word
-        self.controller.storage.update_mnemonic(ret, self.cur_word_index)
-
-        if self.cur_word_index < (self.controller.storage.mnemonic_length - 1):
-            return Destination(
-                SeedSlipMnemonicEntryView,
-                view_args={
-                    "cur_word_index": self.cur_word_index + 1,
-                },
-            )
-        else:
-            # Display the seed words for confirmation
-            from seedcash.gui.screens.load_seed_screens import SeedCashSeedWordsScreen
-
-            confirm = self.run_screen(
-                SeedCashSeedWordsScreen,
-                seed_words=self.controller.storage._mnemonic,
-            )
-
-            if confirm == "CONFIRM":
-                # User confirmed the seed words
-                try:
-                    self.controller.storage.add_share_to_scheme()
-
-                except Exception as e:
-                    for i in range(self.controller.storage.mnemonic_length):
-                        self.controller.back_stack.pop()
-
-                    return Destination(SeedMnemonicInvalidView)
-
-                return Destination(VisualLoadedSchemeView)
-
-
-class VisualLoadedSchemeView(View):
-    """
-    View to display the loaded scheme.
-    """
-
-    def run(self):
-        """
-        Run the view to display the loaded scheme.
-        """
-
-        # Display the seed words for confirmation
-        self.run_screen(
-            VisualLoadedSchemeScreen,
-        )
-
-        # Finalize the seed generation
-        return Destination(SeedFinalizeView)
 
 
 # For Generating Slip39 Seed Views
@@ -148,8 +54,6 @@ class SeedSlipEntryView(View):
         if ret == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
         if len(ret) == 128 or len(ret) == 256:
-            from seedcash.views.slip_views import SeedSlipBitsView
-
             self.controller.storage.set_scheme_params(ret)
             return Destination(SeedSlipBitsView)
 
@@ -241,15 +145,26 @@ class VisualGroupView(View):
             text="Groups",
             threshold=self.group_threshold,
             total_members=self.groups,
+            show_passphrase=True,  # Assuming this is a passphrase view
         )
 
         if result == RET_CODE__BACK_BUTTON:
             return Destination(DiscardGroupsView, skip_current_view=True)
 
-        self.controller.storage.scheme_params.set_group_threshold(result[0])
-        self.controller.storage.scheme_params.set_groups_length(result[1])
+        self.controller.storage.scheme_params.set_group_threshold(result[1])
+        self.controller.storage.scheme_params.set_groups_length(result[2])
 
-        return Destination(ListOfGroupsView)
+        logger.info(
+            "Action: %d Group threshold set to %d and groups length set to %d",
+            result[0],
+            result[1],
+            result[2],
+        )
+
+        if result[0] == "PASSPHRASE":
+            return Destination(SchemeAddPassphraseView)
+        elif result[0] == "CONFIRM":
+            return Destination(ListOfGroupsView)
 
 
 class ListOfGroupsView(View):
@@ -325,6 +240,7 @@ class VisualSharesView(View):
             text="Shares",
             threshold=self.threshold,
             total_members=self.total_members,
+            show_passphrase=self.is_single_level,
         )
 
         if result == RET_CODE__BACK_BUTTON:
@@ -337,7 +253,12 @@ class VisualSharesView(View):
                 skip_current_view=True,
             )
 
-        self.controller.storage.scheme_params.update_groups(self.group_index, result)
+        self.controller.storage.scheme_params.update_groups(
+            self.group_index, (result[1], result[2])
+        )
+
+        if result[0] == "PASSPHRASE":
+            return Destination(SchemeAddPassphraseView)
 
         if self.is_single_level:
             self.controller.storage.generate_scheme_with_params()
@@ -425,8 +346,8 @@ class DiscardGroupsView(View):
     View to discard the groups.
     """
 
-    KEEP_GROUPS = ButtonOption("Keep Groups Scheme")
-    DISCARD_GROUPS = ButtonOption("Discard Groups Scheme", icon_color="red")
+    KEEP_GROUPS = ButtonOption("Keep")
+    DISCARD_GROUPS = ButtonOption("Discard Group", icon_color="red")
 
     def __init__(self):
         super().__init__()
@@ -445,7 +366,7 @@ class DiscardGroupsView(View):
 
         ret = self.run_screen(
             DireWarningScreen,
-            text="Discard Groups Scheme",
+            text="Discard Group",
             button_data=self.button_data,
         )
 
@@ -465,8 +386,8 @@ class DiscardSharesView(View):
     View to discard the shares.
     """
 
-    KEEP_SHARES = ButtonOption("Keep Shares Scheme")
-    DISCARD_SHARES = ButtonOption("Discard Shares Scheme", icon_color="red")
+    KEEP_SHARE = ButtonOption("Keep")
+    DISCARD_SHARE = ButtonOption("Discard Share", icon_color="red")
 
     def __init__(self, group_index: int = 0, is_single_level: bool = False):
         super().__init__()
@@ -474,8 +395,8 @@ class DiscardSharesView(View):
         self.is_single_level = is_single_level
 
         self.button_data = [
-            self.KEEP_SHARES,
-            self.DISCARD_SHARES,
+            self.KEEP_SHARE,
+            self.DISCARD_SHARE,
         ]
 
     def run(self):
@@ -491,7 +412,7 @@ class DiscardSharesView(View):
 
         if ret == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)
-        if self.button_data[ret] == self.KEEP_SHARES:
+        if self.button_data[ret] == self.KEEP_SHARE:
             # Keep shares scheme
             return Destination(
                 VisualSharesView,
@@ -501,7 +422,143 @@ class DiscardSharesView(View):
                 },
                 skip_current_view=True,
             )
-        elif self.button_data[ret] == self.DISCARD_SHARES:
+        elif self.button_data[ret] == self.DISCARD_SHARE:
             # Discard shares scheme
             self.controller.storage.scheme_params.update_groups(self.group_index, None)
+            return Destination(BackStackView)
+
+
+class SchemeFinalizeView(View):
+    """
+    View to finalize the scheme.
+    """
+
+    CONFIRM = ButtonOption("Confirm Scheme", icon_color="green")
+
+    def run(self):
+        """
+        Run the view to finalize the scheme.
+        """
+        # If not complete, show a warning
+        button_data = [
+            self.CONFIRM,
+        ]
+
+        selected_menu_num = self.run_screen(
+            load_seed_screens.SeedFinalizeScreen,
+            fingerprint=(
+                self.controller.storage._scheme._wallet.fingerprint
+                if self.controller.storage._scheme
+                else None
+            ),
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.CONFIRM:
+            if self.controller.storage.wallet:
+                from seedcash.views.wallet_views import WalletOptionsView
+
+                return Destination(WalletOptionsView)
+
+            self.controller.storage.discard_mnemonic()
+            return Destination(MainMenuView)
+
+        return Destination(BackStackView)
+
+
+class SchemeAddPassphraseView(View):
+    """
+    initial_keyboard: used by the screenshot generator to render each different keyboard layout.
+    """
+
+    def __init__(
+        self,
+        initial_keyboard: str = load_seed_screens.SeedAddPassphraseScreen.KEYBOARD__LOWERCASE_BUTTON_TEXT,
+    ):
+        super().__init__()
+        self.initial_keyboard = initial_keyboard
+
+    def run(self):
+        ret_dict = self.run_screen(
+            load_seed_screens.SeedAddPassphraseScreen,
+            passphrase=self.controller.storage.passphrase,
+            title="Enter Passphrase",
+            initial_keyboard=self.initial_keyboard,
+        )
+
+        # The new passphrase will be the return value; it might be empty.
+        self.controller.storage.set_passphrase(ret_dict["passphrase"])
+
+        if len(self.controller.storage.passphrase) > 0:
+            if "is_back_button" in ret_dict:
+                return Destination(
+                    SchemeAddPassphraseExitDialogView, skip_current_view=True
+                )
+            else:
+                return Destination(SchemeReviewPassphraseView, skip_current_view=True)
+        else:
+            return Destination(BackStackView)
+
+
+# Fifth Possible Load Seed View if the user wants to add a passphrase if BACK is pressed
+class SchemeAddPassphraseExitDialogView(View):
+    EDIT = ButtonOption("Edit passphrase")
+    DISCARD = ButtonOption("Discard passphrase", button_label_color="red")
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        button_data = [self.EDIT, self.DISCARD]
+
+        from seedcash.gui.screens.screen import WarningScreen
+
+        selected_menu_num = self.run_screen(
+            WarningScreen,
+            title=_("Discard passphrase?"),
+            status_headline=None,
+            text=_("Your current passphrase entry will be erased"),
+            show_back_button=False,
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.EDIT:
+            return Destination(SchemeAddPassphraseView, skip_current_view=True)
+
+        elif button_data[selected_menu_num] == self.DISCARD:
+            self.controller.storage.set_passphrase("")
+            return Destination(BackStackView)
+
+
+# Fifth Possible Load Seed View if the user wants to add a passphrase
+class SchemeReviewPassphraseView(View):
+    """
+    Display the completed passphrase back to the user.
+    """
+
+    EDIT = ButtonOption("Edit passphrase")
+    DONE = ButtonOption("Confirm")
+
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+
+        button_data = [self.EDIT, self.DONE]
+
+        # Because we have an explicit "Edit" button, we disable "BACK" to keep the
+        # routing options sane.
+        selected_menu_num = self.run_screen(
+            load_seed_screens.SeedReviewPassphraseScreen,
+            passphrase=self.controller.storage.passphrase,
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.EDIT:
+            return Destination(SchemeAddPassphraseView, skip_current_view=True)
+
+        elif button_data[selected_menu_num] == self.DONE:
+            if self.controller.storage.scheme:
+                self.controller.storage.create_wallet()
+                return Destination(SchemeFinalizeView)
             return Destination(BackStackView)

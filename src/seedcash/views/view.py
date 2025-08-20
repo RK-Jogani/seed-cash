@@ -197,10 +197,10 @@ class MainMenuView(View):
     def run(self):
         from seedcash.gui.screens.screen import MainMenuScreen
 
-        if self.controller.storage.seed:
-            from seedcash.views.load_seed_views import SeedOptionsView
+        if self.controller.storage.wallet:
+            from seedcash.views.wallet_views import WalletOptionsView
 
-            return Destination(SeedOptionsView)
+            return Destination(WalletOptionsView)
 
         button_data = [
             self.LOAD_SEED,
@@ -270,7 +270,7 @@ class SeedCashChooseWordsView(View):
 
         if self.is_slip39:
             if self.is_random_seed:
-                from seedcash.views.slip_views import SeedSlipBitsView
+                from seedcash.views.generate_slip_views import SeedSlipBitsView
 
                 return Destination(
                     SeedSlipBitsView,
@@ -282,7 +282,7 @@ class SeedCashChooseWordsView(View):
             elif self.is_calc_final_word:
                 # If the user wants to calculate the last word of a SLIP39 seed, we set the
                 # mnemonic length.
-                from seedcash.views.slip_views import SeedSlipEntryView
+                from seedcash.views.generate_slip_views import SeedSlipEntryView
 
                 return Destination(
                     SeedSlipEntryView,
@@ -290,7 +290,7 @@ class SeedCashChooseWordsView(View):
 
             else:
                 # If the user wants to enter a SLIP39 seed, we set the mnemonic length.
-                from seedcash.views.slip_views import SeedSlipMnemonicEntryView
+                from seedcash.views.load_slip_views import SeedSlipMnemonicEntryView
 
                 return Destination(
                     SeedSlipMnemonicEntryView,

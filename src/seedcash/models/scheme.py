@@ -1,4 +1,4 @@
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Tuple
 
 from seedcash.helper.shamir_mnemonic.share import Share, ShareCommonParameters
 from seedcash.helper.shamir_mnemonic.shamir import (
@@ -10,6 +10,10 @@ from seedcash.helper.shamir_mnemonic.shamir import (
 )
 from seedcash.models.wallet import Wallet
 from seedcash.models.btc_functions import BitcoinFunctions as bf
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidSchemeException(Exception):
@@ -143,13 +147,32 @@ class Scheme:
         self.passphrase: bytes = b""
         self.common_params: List[ShareCommonParameters] = []
         self.wallet: Wallet = None
+        self.master_secret: str = None
 
         if mnemonics:
-            # add the first share
             self.add_share(mnemonics)
 
         if scheme_parameters:
             self.master_secret = self.scheme_parameters._bits
+
+    @property
+    def _wallet(self):
+        if not self.wallet:
+            raise ValueError("The wallet not initialized for scheme")
+
+        return self.wallet
+
+    def set_master_secret(self, master_secret: bytes):
+        """
+        Set the master secret for the scheme.
+        """
+
+        if not master_secret:
+            raise InvalidSchemeException("Master secret cannot be empty.")
+
+        self.master_secret = bin(int.from_bytes(master_secret, byteorder="big"))[
+            2:
+        ].zfill(len(master_secret) * 8)
 
     def get_group_indices(self) -> List[int]:
         """
@@ -182,13 +205,6 @@ class Scheme:
 
         return None
 
-    @property
-    def _wallet(self):
-        if not self.wallet:
-            raise ValueError("The wallet not initialized for scheme")
-
-        return self.wallet
-
     def get_scheme_info(self):
         """
         Returns the common parameters of the Shamir scheme.
@@ -199,7 +215,7 @@ class Scheme:
         processed_groups = self.groups.__len__()
 
         # processed, threshold, total
-        return (processed_groups, group_threshold, total_groups)
+        return processed_groups, group_threshold, total_groups
 
     def get_group_info(self, group_index: int):
         """
@@ -214,7 +230,7 @@ class Scheme:
         member_threshold = group.member_threshold()
 
         # processed, threshold
-        return (shares_count, member_threshold)
+        return shares_count, member_threshold
 
     def discard_scheme(self):
         """
@@ -253,9 +269,10 @@ class Scheme:
         else:
             print(f"Group {group_id} does not exist.")
 
-    def add_share(self, share: List[str]) -> Dict[str, str]:
+    def add_share(self, share_list: List[str]) -> Dict[str, str]:
 
-        share_str = " ".join(share)  # Normalize spaces
+        share_str = " ".join(share_list)  # Normalize spaces
+        logger.info("Share:", share_str)
         share = Share.from_mnemonic(share_str)
 
         if len(self.groups) == 0:
@@ -278,8 +295,9 @@ class Scheme:
     def recover_secret(self) -> bytes:
         try:
             encrypted_master_secret = recover_ems(self.groups)
-            return encrypted_master_secret.decrypt(self.passphrase)
+            self.set_master_secret(encrypted_master_secret.decrypt(self.passphrase))
         except Exception as e:
+            logger.error("Failed to recover master secret:", e)
             return None
 
     def generate_mnemonics(
@@ -321,6 +339,7 @@ class Scheme:
         if not group_threshold:
             raise InvalidSchemeException("Group threshold is not set.")
 
+        logger.info("Passphrase in generate scheme:", self.passphrase)
         if not all(32 <= c <= 126 for c in self.passphrase):
             raise ValueError(
                 "The passphrase must contain only printable ASCII characters (code points 32-126)."
@@ -350,10 +369,12 @@ class Scheme:
         """
         self.passphrase = passphrase.encode("utf-8")
 
-    def generate_wallet(self):
+    def generate_wallet(self) -> Wallet:
         """
         Generates a wallet from the recovered master secret.
         """
+        self.recover_secret()
+
         if not self.master_secret:
             raise InvalidSchemeException("Master secret is not set.")
 
@@ -376,3 +397,25 @@ class Scheme:
         )
 
         return self.wallet
+
+    def is_single_level(self) -> bool:
+        """
+        Checks if the current scheme is a single-level scheme.
+        """
+        return (
+            self.common_params[0].group_count == 1
+            and self.common_params[0].group_threshold == 1
+        )
+
+    def is_complete(self) -> bool:
+        """
+        Checks if the scheme is complete, i.e., threshold number of groups are completed
+        """
+        complete_groups = [
+            group for group in self.groups.values() if group.is_complete()
+        ]
+
+        if len(complete_groups) == self.common_params[0].group_threshold:
+            return True
+
+        return False

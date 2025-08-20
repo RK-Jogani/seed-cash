@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from gettext import gettext as _
 from PIL import Image, ImageDraw
 from seedcash.models import visual_hash as vh
+from seedcash.models.scheme import Scheme
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ class SlipEntryScreen(BaseTopNavScreen):
                         continue
 
                 ret_val = self.keyboard.update_from_input(input)
-                logger.info(f"Keyboard input: {ret_val}")
+
                 # Check exit conditions
                 if len(self.current_bits) == self.bits:
                     return self.current_bits  # Return the entered bits
@@ -415,6 +416,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
     text: str = "Groups"
     threshold: int = 1
     total_members: int = 1
+    show_passphrase: bool = False
 
     def __post_init__(self):
         self.show_back_button = True
@@ -495,24 +497,55 @@ class VisualGroupShareScreen(BaseTopNavScreen):
         )
         self.components.append(self.threshold_down_button)
 
-        # Confirm button
-        self.confirm_button = Button(
-            text=_("Confirm"),
-            screen_x=GUIConstants.EDGE_PADDING,
-            screen_y=self.canvas_height
-            - GUIConstants.BUTTON_HEIGHT
-            - GUIConstants.EDGE_PADDING,
-            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
-            height=GUIConstants.BUTTON_HEIGHT,
-        )
-        self.components.append(self.confirm_button)
+        self._buttons()
 
         # Set initial selection
         self.selected_key = 1
         self.selected_button = 5
-
         self.components[self.selected_key].is_selected = True
         self.components[self.selected_button].is_selected = True
+
+    def _buttons(self):
+        # Confirm button
+        confirm_btn_width = self.canvas_width // 2 - 4 * GUIConstants.EDGE_PADDING
+        if self.show_passphrase:
+            self.confirm_button = Button(
+                text=_("Confirm"),
+                screen_x=GUIConstants.EDGE_PADDING,
+                screen_y=self.canvas_height
+                - GUIConstants.BUTTON_HEIGHT
+                - GUIConstants.EDGE_PADDING,
+                width=confirm_btn_width,
+                height=GUIConstants.BUTTON_HEIGHT,
+            )
+
+            # Add Passphrase button
+            self.add_passphrase_button = Button(
+                text=_("Add Passphrase"),
+                screen_x=confirm_btn_width + 2 * GUIConstants.EDGE_PADDING,
+                screen_y=self.canvas_height
+                - GUIConstants.BUTTON_HEIGHT
+                - GUIConstants.EDGE_PADDING,
+                width=self.canvas_width
+                - confirm_btn_width
+                - 3 * GUIConstants.EDGE_PADDING,
+                height=GUIConstants.BUTTON_HEIGHT,
+            )
+
+            self.components.append(self.confirm_button)
+            self.components.append(self.add_passphrase_button)
+
+        else:
+            self.confirm_button = Button(
+                text=_("Confirm"),
+                screen_x=GUIConstants.EDGE_PADDING,
+                screen_y=self.canvas_height
+                - GUIConstants.BUTTON_HEIGHT
+                - GUIConstants.EDGE_PADDING,
+                width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
+                height=GUIConstants.BUTTON_HEIGHT,
+            )
+            self.components.append(self.confirm_button)
 
     def _update_labels(self):
         """Update the text labels with current values"""
@@ -660,20 +693,16 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                         self.components[self.selected_key].is_selected = True
                         self.components[self.selected_key].render()
                 elif input == HardwareButtonsConstants.KEY2:
+                    self.components[self.selected_key].is_selected = False
+                    self.components[self.selected_key].render()
                     if is_groups:
                         is_groups = False
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
                         self.selected_key = 3  # Reset to fourth button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
                     else:
                         is_groups = True
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
                         self.selected_key = 1  # Reset to first button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
+                    self.components[self.selected_key].is_selected = True
+                    self.components[self.selected_key].render()
                 elif input == HardwareButtonsConstants.KEY3:
                     if is_groups:
                         if self.total_members > 1:  # Prevent groups from going below 1
@@ -690,45 +719,80 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                         self.components[self.selected_key].render()
                         self.selected_key = 4
                         self.components[self.selected_key].is_selected = True
-                    self._render()
 
                 # Handle confirm button and back button
-                if input in HardwareButtonsConstants.KEYS__LEFT_RIGHT_UP_DOWN:
+                if input in [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]:
                     if self.top_nav.is_selected:
-                        self.top_nav.is_selected = False
-                        self.top_nav.render_buttons()
+                        continue
+
+                    if self.selected_button == 5 and self.show_passphrase:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button = 6
                         self.components[self.selected_button].is_selected = True
                         self.components[self.selected_button].render()
                     else:
-                        self.top_nav.is_selected = True
-                        self.top_nav.render_buttons()
                         self.components[self.selected_button].is_selected = False
                         self.components[self.selected_button].render()
+                        self.selected_button = 5
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
 
-                if input == HardwareButtonsConstants.KEY_PRESS:
+                if input == HardwareButtonsConstants.KEY_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.selected_button = 5
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_UP:
+                    if not self.top_nav.is_selected:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+
+                if input in [
+                    HardwareButtonsConstants.KEY_PRESS,
+                ]:
                     if self.top_nav.is_selected:
                         return RET_CODE__BACK_BUTTON
-                    elif self.selected_button == 5:  # Confirm button
-                        return (self.threshold, self.total_members)
+                    if self.selected_button == 5:
+                        return ("CONFIRM", self.threshold, self.total_members)
+                    if self.selected_button == 6:
+                        return ("PASSPHRASE", self.threshold, self.total_members)
 
-                self._render()
+                self._render()  # Render the updated screen
 
 
 @dataclass
 class VisualLoadedSchemeScreen(BaseTopNavScreen):
-    threshold: int = 1
-    total_members: int = 1
+    scheme: Scheme = None
 
     def __post_init__(self):
         self.show_back_button = True
-        self.title = "Group No:"
         super().__post_init__()
+
+        self.group_indices = self.scheme.get_group_indices()
+
+        self.processed_groups, self.group_threshold, self.total_groups = (
+            self.scheme.get_scheme_info()
+        )
+
+        self.group_index = 0
+
+        # navigate groups
+        self._navigate_groups()
 
         # Group Circle
         self.group_radius_int = int(self.canvas_width // 6)
         self.group_circle_radius = min(80, self.group_radius_int)
         self.group_circle_center = (
-            self.canvas_width // 5,
+            self.canvas_width // 6 + GUIConstants.EDGE_PADDING,
             GUIConstants.EDGE_PADDING
             + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
             + 20
@@ -739,7 +803,7 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
         self.share_radius_int = int(self.canvas_width // 6)
         self.share_circle_radius = min(80, self.share_radius_int)
         self.share_circle_center = (
-            self.canvas_width // 5 * 3,
+            self.canvas_width // 2 + 2 * GUIConstants.EDGE_PADDING,
             GUIConstants.EDGE_PADDING
             + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
             + 20
@@ -812,11 +876,19 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
         self.components.append(self.add_share_button)
 
         # Set initial selection
-        self.selected_key = 0
-        self.selected_button = 1
+        self.selected_key = 1
+        self.selected_button = 3
 
         self.components[self.selected_key].is_selected = True
         self.components[self.selected_button].is_selected = True
+
+    def _navigate_groups(self):
+        self.shares_count, self.member_threshold = self.scheme.get_group_info(
+            self.group_indices[self.group_index]
+        )
+
+        self.top_nav.text = f"Group:{self.group_indices[self.group_index]}"
+        self.top_nav.render()
 
     def _update_labels(self):
         """Update the text labels with current values"""
@@ -828,65 +900,76 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
 
         # Group label (left side)
         self.groups_text = TextArea(
-            text=f"Groups: {self.total_members}",
+            text=f"Grups:{self.total_groups}",
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=label_y,
-            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - GUIConstants.EDGE_PADDING,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
+            is_text_centered=False,
         )
 
         self.groups_progress_text = TextArea(
-            text=f"Progress: {self.total_members}",
+            text=f"Progr:{self.processed_groups}",
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=label_y
             + GUIConstants.BUTTON_HEIGHT
             - 2 * GUIConstants.EDGE_PADDING,
-            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - GUIConstants.EDGE_PADDING,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
+            is_text_centered=False,
         )
 
         self.group_threshold_text = TextArea(
-            text=f"Threshold: {self.threshold}",
+            text=f"Thres:{self.group_threshold}",
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=label_y
             + 2 * GUIConstants.BUTTON_HEIGHT
-            - 3 * GUIConstants.EDGE_PADDING,
-            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            - 4 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 - GUIConstants.EDGE_PADDING,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
+            is_text_centered=False,
+        )
+
+        # Share label (right side)
+
+        self.current_group_text = TextArea(
+            text=f"Group:{self.group_indices[self.group_index]}",
+            screen_x=self.canvas_width // 2 - 3 * GUIConstants.EDGE_PADDING,
+            screen_y=label_y,
+            width=self.canvas_width // 2 + 3 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
+        )
+
+        self.members_progress_text = TextArea(
+            text=f"Progr:{self.shares_count}",
+            screen_x=self.canvas_width // 2 - 3 * GUIConstants.EDGE_PADDING,
+            screen_y=label_y + GUIConstants.BUTTON_HEIGHT // 2,
+            width=self.canvas_width // 2 + 3 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
         )
 
         # Share label (right side)
         self.members_threshold_text = TextArea(
-            text=f"Members: {self.threshold}",
-            screen_x=self.canvas_width // 2 + GUIConstants.EDGE_PADDING,
-            screen_y=label_y,
-            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
+            text=f"Thres:{self.member_threshold}",
+            screen_x=self.canvas_width // 2 - 3 * GUIConstants.EDGE_PADDING,
+            screen_y=label_y + GUIConstants.BUTTON_HEIGHT,
+            width=self.canvas_width // 2 + 3 * GUIConstants.EDGE_PADDING,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
-        )
-
-        self.members_progress_text = TextArea(
-            text=f"Progress: {self.threshold}",
-            screen_x=self.canvas_width // 2 + GUIConstants.EDGE_PADDING,
-            screen_y=label_y
-            + GUIConstants.BUTTON_HEIGHT
-            - 2 * GUIConstants.EDGE_PADDING,
-            width=self.canvas_width // 2 - 2 * GUIConstants.EDGE_PADDING,
-            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
-            font_size=GUIConstants.BODY_FONT_SIZE,
-            is_text_centered=True,
+            is_text_centered=False,
         )
 
         self.groups_text.render()
         self.groups_progress_text.render()
         self.group_threshold_text.render()
+        self.current_group_text.render()
         self.members_threshold_text.render()
         self.members_progress_text.render()
 
@@ -894,17 +977,14 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
         """Draw both circles with segments showing groups and threshold"""
         draw = ImageDraw.Draw(self.renderer.canvas)
 
-        # Ensure threshold doesn't exceed groups
-        self.threshold = min(self.threshold, self.total_members)
-
         # Draw Group Circle (left)
         self._draw_single_circle(
             draw,
             self.group_circle_center,
             self.group_circle_radius,
-            self.total_members,
-            self.total_members,
-            title="Groups",
+            self.total_groups,
+            self.group_threshold,
+            self.processed_groups,
         )
 
         # Draw Share Circle (right)
@@ -912,13 +992,13 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             draw,
             self.share_circle_center,
             self.share_circle_radius,
-            self.total_members,
-            self.threshold,
-            title="Shares",
+            self.member_threshold,
+            self.member_threshold,
+            self.shares_count,
         )
 
     def _draw_single_circle(
-        self, draw, center, radius, total_segments, filled_segments, title=""
+        self, draw, center, radius, total_segments, filled_threshold, filled_progress
     ):
         """Helper method to draw a single circle with segments"""
         # Draw the full circle outline
@@ -935,7 +1015,14 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
 
         # If only 1 segment, draw full circle filled or empty
         if total_segments == 1:
-            fill_color = "white" if filled_segments >= 1 else "#333333"
+            if filled_threshold == 1:
+                if filled_progress == 1:
+                    fill_color = GUIConstants.ACCENT_COLOR
+                else:
+                    fill_color = "white"
+            else:
+                fill_color = "#333333"
+
             draw.ellipse(
                 [
                     center[0] - radius,
@@ -950,7 +1037,8 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
 
         # Calculate segment angles for multiple segments
         angle_per_segment = 360 / total_segments
-        filled_color = "white"
+        filled_threshold_color = "white"
+        filled_progress_color = GUIConstants.ACCENT_COLOR
         empty_color = "#333333"  # Dark gray for unfilled segments
 
         # Draw each segment
@@ -958,8 +1046,20 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             start_angle = i * angle_per_segment - 90  # Start from top (-90 degrees)
             end_angle = (i + 1) * angle_per_segment - 90
 
-            # Determine if this segment should be filled
-            fill_color = filled_color if i < filled_segments else empty_color
+            # Determine if this segment should be filled (part of threshold)
+            if i < filled_threshold:
+                if i < filled_progress:
+                    # Use filled_progress_color for segments that are filled and reached the threshold
+                    fill_color = filled_progress_color
+                else:
+                    fill_color = filled_threshold_color
+            else:
+                if i < filled_progress:
+                    # Use filled_progress_color for segments that are filled but not reached the threshold
+                    fill_color = filled_progress_color
+                else:
+                    # Use empty_color for segments that are not filled
+                    fill_color = empty_color
 
             # Draw pie segment
             draw.pieslice(
@@ -1000,82 +1100,335 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
         self.renderer.show_image()
 
     def _run(self):
-        pass
-        is_groups = True
         while True:
             input = self.hw_inputs.wait_for(HardwareButtonsConstants.ALL_KEYS)
 
             with self.renderer.lock:
                 # Clear current selection
                 if input == HardwareButtonsConstants.KEY1:
-                    if is_groups:
-                        self.total_members += 1
-                        # Ensure threshold doesn't exceed groups when groups increase
-                        self.threshold = min(self.threshold, self.total_members)
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 1  # Reset to first button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
-                    else:
-                        # Only increase threshold if it won't exceed groups
-                        if self.threshold < self.total_members:
-                            self.threshold += 1
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 3  # Reset to fourth button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
-                elif input == HardwareButtonsConstants.KEY2:
-                    if is_groups:
-                        is_groups = False
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 3  # Reset to fourth button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
-                    else:
-                        is_groups = True
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 1  # Reset to first button
-                        self.components[self.selected_key].is_selected = True
-                        self.components[self.selected_key].render()
+                    self.components[self.selected_key].is_selected = False
+                    self.components[self.selected_key].render()
+                    self.selected_key = 1
+                    self.components[self.selected_key].is_selected = True
+                    self.components[self.selected_key].render()
+
+                    if self.group_index < self.processed_groups - 1:
+                        self.group_index += 1
+                        self._navigate_groups()
+
                 elif input == HardwareButtonsConstants.KEY3:
-                    if is_groups:
-                        if self.total_members > 1:  # Prevent groups from going below 1
-                            self.total_members = max(1, self.total_members - 1)
-                            # Ensure threshold doesn't exceed groups when groups decrease
-                            self.threshold = min(self.threshold, self.total_members)
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 2
-                        self.components[self.selected_key].is_selected = True
-                    else:
-                        self.threshold = max(1, self.threshold - 1)
-                        self.components[self.selected_key].is_selected = False
-                        self.components[self.selected_key].render()
-                        self.selected_key = 4
-                        self.components[self.selected_key].is_selected = True
-                    self._render()
+                    self.components[self.selected_key].is_selected = False
+                    self.components[self.selected_key].render()
+                    self.selected_key = 2
+                    self.components[self.selected_key].is_selected = True
+                    self.components[self.selected_key].render()
+
+                    if self.group_index > 0:
+                        self.group_index -= 1
+                        self._navigate_groups()
 
                 # Handle confirm button and back button
-                if input in HardwareButtonsConstants.KEYS__LEFT_RIGHT_UP_DOWN:
+                if input in [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]:
                     if self.top_nav.is_selected:
-                        self.top_nav.is_selected = False
-                        self.top_nav.render_buttons()
+                        continue
+
+                    if self.selected_button == 3:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button = 4
                         self.components[self.selected_button].is_selected = True
                         self.components[self.selected_button].render()
                     else:
-                        self.top_nav.is_selected = True
-                        self.top_nav.render_buttons()
                         self.components[self.selected_button].is_selected = False
                         self.components[self.selected_button].render()
+                        self.selected_button = 3
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
 
-                if input == HardwareButtonsConstants.KEY_PRESS:
+                if input == HardwareButtonsConstants.KEY_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.selected_button = 3
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_UP:
+                    if not self.top_nav.is_selected:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+
+                if input in [
+                    HardwareButtonsConstants.KEY_PRESS,
+                    HardwareButtonsConstants.KEY2,
+                ]:
                     if self.top_nav.is_selected:
                         return RET_CODE__BACK_BUTTON
-                    elif self.selected_button == 5:  # Confirm button
-                        return (self.threshold, self.total_members)
+                    if self.selected_button == 3:
+                        return "EDIT"
+                    if self.selected_button == 4:
+                        return "ADD"
+
+                self._render()
+
+
+@dataclass
+class SingleLevelVisualLoadedSchemeScreen(BaseTopNavScreen):
+    shares_count: int = 1
+    member_threshold: int = 1
+
+    def __post_init__(self):
+        self.show_back_button = True
+        super().__post_init__()
+
+        # Share Circle
+        self.share_radius_int = int(self.canvas_width // 5)
+        self.share_circle_radius = min(80, self.share_radius_int)
+        self.share_circle_center = (
+            self.canvas_width // 2,
+            GUIConstants.EDGE_PADDING
+            + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
+            + 20
+            + self.share_circle_radius,
+        )
+
+        edit_review_width = 108
+        # Edit & Review button
+        self.edit_review_button = Button(
+            text=_("Edit & Review"),
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.BUTTON_HEIGHT
+            - GUIConstants.EDGE_PADDING,
+            width=edit_review_width,
+            font_size=GUIConstants.BUTTON_FONT_SIZE - 4,
+            height=GUIConstants.BUTTON_HEIGHT,
+        )
+        self.components.append(self.edit_review_button)
+
+        # Add Share button
+        self.add_share_button = Button(
+            text=_(" Add Share"),
+            screen_x=edit_review_width + 2 * GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.BUTTON_HEIGHT
+            - GUIConstants.EDGE_PADDING,
+            font_size=GUIConstants.BUTTON_FONT_SIZE - 4,
+            width=edit_review_width,
+            height=GUIConstants.BUTTON_HEIGHT,
+        )
+        self.components.append(self.add_share_button)
+
+        self.selected_button = 1
+        self.components[self.selected_button].is_selected = True
+
+    def _update_labels(self):
+        """Update the text labels with current values"""
+        label_y = (
+            max(80, self.share_circle_center[1])
+            + self.share_circle_radius
+            + GUIConstants.COMPONENT_PADDING
+        )
+
+        label_x = self.canvas_width // 2 - self.share_circle_radius
+
+        # Share label (right side)
+        self.members_progress_text = TextArea(
+            text=f"Prog:{self.shares_count}",
+            screen_x=label_x,
+            screen_y=label_y,
+            width=self.canvas_width // 2 + 3 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
+        )
+
+        self.members_threshold_text = TextArea(
+            text=f"Thres:{self.member_threshold}",
+            screen_x=label_x,
+            screen_y=label_y
+            + GUIConstants.BUTTON_HEIGHT
+            - 2 * GUIConstants.EDGE_PADDING,
+            width=self.canvas_width // 2 + 3 * GUIConstants.EDGE_PADDING,
+            font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
+            font_size=GUIConstants.BODY_FONT_SIZE,
+            is_text_centered=False,
+        )
+
+        self.members_threshold_text.render()
+        self.members_progress_text.render()
+
+    def _draw_circle_segments(self):
+        """Draw both circles with segments showing groups and threshold"""
+        draw = ImageDraw.Draw(self.renderer.canvas)
+
+        # Draw Share Circle (right)
+        self._draw_single_circle(
+            draw,
+            self.share_circle_center,
+            self.share_circle_radius,
+            self.member_threshold,
+            self.member_threshold,
+            self.shares_count,
+        )
+
+    def _draw_single_circle(
+        self, draw, center, radius, total_segments, filled_threshold, filled_progress
+    ):
+        """Helper method to draw a single circle with segments"""
+        # Draw the full circle outline
+        draw.ellipse(
+            [
+                center[0] - radius,
+                center[1] - radius,
+                center[0] + radius,
+                center[1] + radius,
+            ],
+            outline=GUIConstants.ACCENT_COLOR,
+            width=2,
+        )
+
+        # If only 1 segment, draw full circle filled or empty
+        if total_segments == 1:
+            if filled_threshold == 1:
+                if filled_progress == 1:
+                    fill_color = GUIConstants.ACCENT_COLOR
+                else:
+                    fill_color = "white"
+            else:
+                fill_color = "#333333"
+
+            draw.ellipse(
+                [
+                    center[0] - radius,
+                    center[1] - radius,
+                    center[0] + radius,
+                    center[1] + radius,
+                ],
+                fill=fill_color,
+                width=2,
+            )
+            return
+
+        # Calculate segment angles for multiple segments
+        angle_per_segment = 360 / total_segments
+        filled_threshold_color = "white"
+        filled_progress_color = GUIConstants.ACCENT_COLOR
+        empty_color = "#333333"  # Dark gray for unfilled segments
+
+        # Draw each segment
+        for i in range(total_segments):
+            start_angle = i * angle_per_segment - 90  # Start from top (-90 degrees)
+            end_angle = (i + 1) * angle_per_segment - 90
+
+            # Determine if this segment should be filled (part of threshold)
+            if i < filled_threshold:
+                if i < filled_progress:
+                    # Use filled_progress_color for segments that are filled and reached the threshold
+                    fill_color = filled_progress_color
+                else:
+                    fill_color = filled_threshold_color
+            else:
+                if i < filled_progress:
+                    # Use filled_progress_color for segments that are filled but not reached the threshold
+                    fill_color = filled_progress_color
+                else:
+                    # Use empty_color for segments that are not filled
+                    fill_color = empty_color
+
+            # Draw pie segment
+            draw.pieslice(
+                [
+                    center[0] - radius,
+                    center[1] - radius,
+                    center[0] + radius,
+                    center[1] + radius,
+                ],
+                start=start_angle,
+                end=end_angle,
+                fill=fill_color,
+                outline=GUIConstants.BACKGROUND_COLOR,
+                width=1,
+            )
+
+        # Draw dividing lines between segments (only if more than 1 segment)
+        if total_segments > 1:
+            for i in range(total_segments):
+                # Calculate the angle for the dividing line
+                line_angle = math.radians(i * angle_per_segment - 90)
+                line_end = (
+                    center[0] + radius * math.cos(line_angle),
+                    center[1] + radius * math.sin(line_angle),
+                )
+                draw.line(
+                    [center, line_end],
+                    fill=GUIConstants.BACKGROUND_COLOR,
+                    width=2,
+                )
+
+    def _render(self):
+        super()._render()
+        self._update_labels()
+        self._draw_circle_segments()
+        for component in self.components:
+            component.render()
+        self.renderer.show_image()
+
+    def _run(self):
+        while True:
+            input = self.hw_inputs.wait_for(HardwareButtonsConstants.ALL_KEYS)
+
+            with self.renderer.lock:
+                # Handle confirm button and back button
+                if input in [
+                    HardwareButtonsConstants.KEY_LEFT,
+                    HardwareButtonsConstants.KEY_RIGHT,
+                ]:
+                    if self.top_nav.is_selected:
+                        continue
+
+                    if self.selected_button == 1:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button = 2
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    else:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button = 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.selected_button = 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                if input == HardwareButtonsConstants.KEY_UP:
+                    if not self.top_nav.is_selected:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+
+                if input in [
+                    HardwareButtonsConstants.KEY_PRESS,
+                    HardwareButtonsConstants.KEY2,
+                ]:
+                    if self.top_nav.is_selected:
+                        return RET_CODE__BACK_BUTTON
+                    if self.selected_button == 1:
+                        return "EDIT"
+                    if self.selected_button == 2:
+                        return "ADD"
 
                 self._render()
