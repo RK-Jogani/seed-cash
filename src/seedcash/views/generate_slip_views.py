@@ -34,14 +34,7 @@ class SeedSlipEntryView(View):
 
     def __init__(self):
         super().__init__()
-        num_words = self.controller.storage.mnemonic_length
-
-        if num_words == 20:
-            self.bits = 128
-        elif num_words == 33:
-            self.bits = 256
-        else:
-            raise ValueError("Unsupported number of words for Slip39 seed phrase.")
+        self.num_words = self.controller.storage.mnemonic_length
 
     def run(self):
         """
@@ -49,7 +42,7 @@ class SeedSlipEntryView(View):
         """
         from seedcash.gui.screens.slip_screens import SlipEntryScreen
 
-        ret = self.run_screen(SlipEntryScreen, bits=self.bits)
+        ret = self.run_screen(SlipEntryScreen, num_words=self.num_words)
 
         if ret == RET_CODE__BACK_BUTTON:
             return Destination(BackStackView)

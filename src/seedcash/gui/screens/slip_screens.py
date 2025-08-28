@@ -6,10 +6,12 @@ from seedcash.gui.components import (
     IconButton,
     IconTextLine,
     SeedCashIconsConstants,
+    FontAwesomeIconConstants,
     TextArea,
 )
 
-from seedcash.gui.keyboard import Keyboard, TextEntryDisplay
+from seedcash.models.btc_functions import BitcoinFunctions as bf
+from seedcash.gui.keyboard import TextEntryDisplay
 from seedcash.gui.screens.screen import (
     RET_CODE__BACK_BUTTON,
     BaseTopNavScreen,
@@ -28,13 +30,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SlipEntryScreen(BaseTopNavScreen):
-    bits: int = 128  # Default to 128
-    current_bits: str = ""  # Track the bits entered so far
+    num_words: int = 20
 
     def __post_init__(self):
         self.show_back_button = True
         self.title = _("Entropy Bits")
         super().__post_init__()
+
+        if self.num_words == 20:
+            self.bits = 128
+        elif self.num_words == 33:
+            self.bits = 256
+        else:
+            raise ValueError("Unsupported number of words for Slip39 seed phrase.")
+
+        # Current entered bits
+        self.current_bits = ""
 
         # Total number of screens
         self.total_screens = self.bits // 16
@@ -47,54 +58,119 @@ class SlipEntryScreen(BaseTopNavScreen):
         # cursor position for text entry
         self.cursor_position = 0
 
-        text_entry_display_y = self.top_nav.height + 3 * GUIConstants.COMPONENT_PADDING
-        text_entry_display_height = 30
+        self.text_entry_display_y = (
+            self.top_nav.height + 3 * GUIConstants.COMPONENT_PADDING
+        )
+        self.text_entry_display_height = 30
 
         # Add text display for the entered bits
         self.text_entry_display = TextEntryDisplay(
             canvas=self.renderer.canvas,
             rect=(
                 GUIConstants.EDGE_PADDING,
-                text_entry_display_y,
+                self.text_entry_display_y,
                 self.canvas_width - GUIConstants.EDGE_PADDING,
-                text_entry_display_y + text_entry_display_height,
+                self.text_entry_display_y + self.text_entry_display_height,
             ),
             cursor_mode=TextEntryDisplay.CURSOR_MODE__BAR,
             is_centered=False,
             cur_text=self.current_bits,
         )
 
-        keyboard_start_y = (
-            text_entry_display_y
-            + text_entry_display_height
+        self._custom_keyboard()
+        self._dynamic_title()
+
+        self.selected_button = 1  # Start with first button selected
+        self.components[self.selected_button].is_selected = True
+
+    def _custom_keyboard(self):
+        btns_y = (
+            self.text_entry_display_y
+            + self.text_entry_display_height
             + GUIConstants.COMPONENT_PADDING
         )
 
-        self.keyboard = Keyboard(
-            draw=self.renderer.draw,
-            charset="01",  # Only allow binary input
-            rows=2,
-            cols=4,
-            rect=(
-                GUIConstants.COMPONENT_PADDING,
-                keyboard_start_y,
-                self.canvas_width - GUIConstants.COMPONENT_PADDING,
-                self.canvas_height
-                - 4 * GUIConstants.EDGE_PADDING
-                - GUIConstants.BUTTON_HEIGHT,
-            ),
-            additional_keys=[
-                Keyboard.KEY_CURSOR_LEFT,
-                Keyboard.KEY_CURSOR_RIGHT,
-                Keyboard.KEY_BACKSPACE,
-            ],
-            auto_wrap=[
-                Keyboard.WRAP_LEFT,
-                Keyboard.WRAP_RIGHT,
-            ],
+        key_size = int(3 / 2 * GUIConstants.BUTTON_HEIGHT)
+        special_key_size = 3 * GUIConstants.BUTTON_HEIGHT
+
+        # 0 and 1 buttons
+        self.key_0 = Button(
+            text="0",
+            is_text_centered=True,
+            font_name=GUIConstants.BUTTON_FONT_NAME,
+            font_size=GUIConstants.BUTTON_FONT_SIZE + 8,
+            screen_x=2 * GUIConstants.EDGE_PADDING,
+            screen_y=btns_y,
+            width=(key_size),
+            height=key_size,
+            is_selected=False,
         )
 
-        self._dynamic_title()
+        self.key_1 = Button(
+            text="1",
+            is_text_centered=True,
+            font_name=GUIConstants.BUTTON_FONT_NAME,
+            font_size=GUIConstants.BUTTON_FONT_SIZE + 8,
+            screen_x=3 * GUIConstants.EDGE_PADDING + key_size,
+            screen_y=btns_y,
+            width=(key_size),
+            height=key_size,
+            is_selected=False,
+        )
+
+        # Create button for dice
+        self.dice_button = IconButton(
+            icon_name=FontAwesomeIconConstants.DICE,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE + 4,
+            screen_x=4 * GUIConstants.EDGE_PADDING + 2 * key_size,
+            screen_y=btns_y,
+            width=(special_key_size),
+            height=(key_size),
+            is_text_centered=True,
+            is_selected=False,
+        )
+
+        # special keys keyboard on second row
+
+        # left cursor button
+        left_cursor_btn = IconButton(
+            icon_name=SeedCashIconsConstants.CHEVRON_LEFT,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=2 * GUIConstants.EDGE_PADDING,
+            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            width=(key_size),
+            height=(key_size),
+            is_selected=False,
+        )
+
+        # right cursor button
+        right_cursor_btn = IconButton(
+            icon_name=SeedCashIconsConstants.CHEVRON_RIGHT,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
+            screen_x=3 * GUIConstants.EDGE_PADDING + key_size,
+            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            width=(key_size),
+            height=(key_size),
+            is_selected=False,
+        )
+
+        # create backspace button
+        backspace_btn = IconButton(
+            icon_name=SeedCashIconsConstants.DELETE,
+            icon_size=GUIConstants.ICON_INLINE_FONT_SIZE + 4,
+            screen_x=4 * GUIConstants.EDGE_PADDING + 2 * key_size,
+            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            width=(special_key_size),
+            height=key_size,
+            is_selected=False,
+        )
+
+        self.components.append(self.key_0)
+        self.components.append(self.key_1)
+        self.components.append(self.dice_button)
+        self.components.append(left_cursor_btn)
+        self.components.append(right_cursor_btn)
+        self.components.append(backspace_btn)
 
     def _dynamic_title(self):
         dynamic_title_text = _(f"{len(self.current_bits)}/{self.bits}")
@@ -113,7 +189,6 @@ class SlipEntryScreen(BaseTopNavScreen):
 
     def _render(self):
         super()._render()
-        self.keyboard.render_keys()
         self.text_entry_display.render(self.current_bits, self.cursor_position)
 
         for component in self.components:
@@ -135,51 +210,106 @@ class SlipEntryScreen(BaseTopNavScreen):
 
             with self.renderer.lock:
 
-                if self.top_nav.is_selected:
-                    if input == HardwareButtonsConstants.KEY_DOWN:
+                if input == HardwareButtonsConstants.KEY_LEFT:
+                    if self.selected_button > 1:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button -= 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    else:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+
+                elif input == HardwareButtonsConstants.KEY_RIGHT:
+                    if self.top_nav.is_selected:
                         self.top_nav.is_selected = False
                         self.top_nav.render_buttons()
-                        self.keyboard.set_selected_key_indices(0, 0)
-                    elif input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                        return RET_CODE__BACK_BUTTON
+                        self.selected_button = 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    elif self.selected_button < 6:
+                        logger.info(
+                            f"Selected button before right: {self.selected_button}"
+                        )
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button += 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                elif input == HardwareButtonsConstants.KEY_UP:
+                    if self.selected_button in [1, 2, 3]:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.top_nav.is_selected = True
+                        self.top_nav.render_buttons()
+                    elif self.selected_button in [4, 5, 6]:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button -= 3
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                elif input == HardwareButtonsConstants.KEY_DOWN:
+                    if self.top_nav.is_selected:
+                        self.top_nav.is_selected = False
+                        self.top_nav.render_buttons()
+                        self.selected_button = 1
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+                    elif self.selected_button in [1, 2, 3]:
+                        self.components[self.selected_button].is_selected = False
+                        self.components[self.selected_button].render()
+                        self.selected_button += 3
+                        self.components[self.selected_button].is_selected = True
+                        self.components[self.selected_button].render()
+
+                elif input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                    if self.top_nav.is_selected:
+                        if input == HardwareButtonsConstants.KEY_PRESS:
+                            return RET_CODE__BACK_BUTTON
                     else:
-                        continue
-
-                ret_val = self.keyboard.update_from_input(input)
-
-                # Check exit conditions
-                if len(self.current_bits) == self.bits:
-                    return self.current_bits  # Return the entered bits
-                if input in HardwareButtonsConstants.KEYS__ANYCLICK:
-                    if ret_val in self.keyboard.charset:
-                        # If the input is a valid character, insert it at the cursor position
-                        self.current_bits = (
-                            self.current_bits[: self.cursor_position]
-                            + ret_val
-                            + self.current_bits[self.cursor_position :]
-                        )
-                        self.cursor_position += 1
-                    elif ret_val == Keyboard.KEY_BACKSPACE["code"]:
-                        # Handle backspace
-                        if self.cursor_position > 0:
-                            self.current_bits = (
-                                self.current_bits[: self.cursor_position - 1]
-                                + self.current_bits[self.cursor_position :]
+                        if self.selected_button == 1:  # Key 0
+                            if len(self.current_bits) < self.bits:
+                                self.current_bits = (
+                                    self.current_bits[: self.cursor_position]
+                                    + "0"
+                                    + self.current_bits[self.cursor_position :]
+                                )
+                                self.cursor_position += 1
+                        elif self.selected_button == 2:  # Key 1
+                            if len(self.current_bits) < self.bits:
+                                self.current_bits = (
+                                    self.current_bits[: self.cursor_position]
+                                    + "1"
+                                    + self.current_bits[self.cursor_position :]
+                                )
+                                self.cursor_position += 1
+                        elif self.selected_button == 3:  # Dice button
+                            # random bits
+                            self.current_bits = bf.get_random_bits_for_slip(
+                                self.num_words
                             )
-                            self.cursor_position -= 1
-                    elif ret_val == Keyboard.KEY_CURSOR_LEFT["code"]:
-                        # Move cursor left
-                        self.cursor_position = max(0, self.cursor_position - 1)
-                    elif ret_val == Keyboard.KEY_CURSOR_RIGHT["code"]:
-                        # Move cursor right
-                        self.cursor_position = min(
-                            len(self.current_bits), self.cursor_position + 1
-                        )
-
-                # Handle navigation
-                if ret_val in Keyboard.EXIT_DIRECTIONS:
-                    self.top_nav.is_selected = True
-                    self.top_nav.render_buttons()
+                            pass
+                        elif self.selected_button == 4:  # Left cursor
+                            if self.cursor_position > 0:
+                                self.cursor_position -= 1
+                        elif self.selected_button == 5:  # Right cursor
+                            if self.cursor_position < len(self.current_bits):
+                                self.cursor_position += 1
+                        elif self.selected_button == 6:  # Backspace
+                            if self.cursor_position > 0:
+                                self.current_bits = (
+                                    self.current_bits[: self.cursor_position - 1]
+                                    + self.current_bits[self.cursor_position :]
+                                )
+                                self.cursor_position -= 1
+                        # Check if we are done
+                        if len(self.current_bits) == self.bits:
+                            return self.current_bits
 
                 self._dynamic_title()
                 self._render()
