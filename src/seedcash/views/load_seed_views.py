@@ -4,6 +4,7 @@ from seedcash.gui.components import SeedCashIconsConstants
 from seedcash.gui.screens import (
     RET_CODE__BACK_BUTTON,
     DireWarningScreen,
+    WarningScreen,
     load_seed_screens,
 )
 from seedcash.gui.screens.screen import ButtonOption
@@ -55,7 +56,7 @@ class SeedMnemonicEntryView(View):
                 and self.controller.storage.mnemonic
                 != [None] * self.controller.storage.mnemonic_length
             ):
-                return Destination(SeedMnemonicInvalidView, skip_current_view=True)
+                return Destination(SeedMnemonicDiscardView, skip_current_view=True)
 
             return Destination(BackStackView)
 
@@ -139,6 +140,38 @@ class SeedMnemonicInvalidView(View):
             status_icon_name=SeedCashIconsConstants.ERROR,
             status_headline=None,
             text=_("Checksum failure; not a valid seed phrase."),
+            show_back_button=False,
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.EDIT:
+            return Destination(
+                SeedMnemonicEntryView,
+                view_args={"cur_word_index": 0},
+                skip_current_view=True,
+            )
+
+        elif button_data[selected_menu_num] == self.DISCARD:
+            self.controller.storage.discard_mnemonic()
+            return Destination(MainMenuView)
+
+
+class SeedMnemonicDiscardView(View):
+    EDIT = ButtonOption("Review & Edit")
+    DISCARD = ButtonOption("Discard", button_label_color="red")
+
+    def __init__(self):
+        super().__init__()
+        self.mnemonic: list[str] = self.controller.storage._mnemonic
+
+    def run(self):
+        button_data = [self.EDIT, self.DISCARD]
+        selected_menu_num = self.run_screen(
+            WarningScreen,
+            title=_("Discard Mnemonic!"),
+            status_icon_name=SeedCashIconsConstants.ERROR,
+            status_headline=None,
+            text=_("Are you sure you want to discard this mnemonic?"),
             show_back_button=False,
             button_data=button_data,
         )

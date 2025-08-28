@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 class SettingOptionsView(View):
     LANGUAGE = ButtonOption("Language")
     SEED_PROTOCOL = ButtonOption("Seed Backup Protocol")
+    DERIVATION_PATH = ButtonOption("Derivation Path")
     TEST_BUTTONS = ButtonOption("Test Buttons")
     TEST_CAMERA = ButtonOption("Test Camera")
     CAMERA_ROTATION = ButtonOption("Camera Rotation")
@@ -35,6 +36,7 @@ class SettingOptionsView(View):
         button_data = [
             self.LANGUAGE,
             self.SEED_PROTOCOL,
+            self.DERIVATION_PATH,
             self.TEST_BUTTONS,
             self.TEST_CAMERA,
             self.CAMERA_ROTATION,
@@ -51,6 +53,8 @@ class SettingOptionsView(View):
             return Destination(SettingLanguageView)
         elif button_data[selected_menu_num] == self.SEED_PROTOCOL:
             return Destination(SettingSeedProtocolView)
+        elif button_data[selected_menu_num] == self.DERIVATION_PATH:
+            return Destination(SettingDerivationPathView)
         elif button_data[selected_menu_num] == self.TEST_BUTTONS:
             return Destination(SettingTestButtons)
         elif button_data[selected_menu_num] == self.TEST_CAMERA:
@@ -132,6 +136,22 @@ class SettingSeedProtocolView(View):
             return Destination(
                 ProtocolMigrationWarningView, view_args={"protocol": selected_protocol}
             )
+
+
+class SettingDerivationPathView(View):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+
+        from seedcash.gui.screens.setting_screens import SettingDerivationPathScreen
+
+        selected_menu_num = self.run_screen(
+            SettingDerivationPathScreen,
+            title="Derivation Path",
+        )
+
+        return Destination(BackStackView)
 
 
 class ProtocolMigrationWarningView(View):

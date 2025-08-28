@@ -270,14 +270,16 @@ class SeedCashChooseWordsView(View):
 
         if self.is_slip39:
             if self.is_random_seed:
-                from seedcash.views.generate_slip_views import SeedSlipBitsView
+                from seedcash.views.generate_slip_views import SeedSlipSchemeView
+                from seedcash.models.btc_functions import BitcoinFunctions as bf
 
-                return Destination(
-                    SeedSlipBitsView,
-                    view_args={
-                        "is_random_seed": self.is_random_seed,
-                    },
+                self.bits = bf.get_random_bits_for_slip(
+                    self.controller.storage.mnemonic_length
                 )
+
+                self.controller.storage.set_scheme_params(self.bits)
+
+                return Destination(SeedSlipSchemeView)
 
             elif self.is_calc_final_word:
                 # If the user wants to calculate the last word of a SLIP39 seed, we set the

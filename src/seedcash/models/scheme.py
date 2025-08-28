@@ -80,7 +80,6 @@ class SchemeParameters:
         if length < 1:
             raise ValueError("Number of groups must be at least 1.")
         self.groups = [None] * length
-        self.group_threshold = 1
 
     def set_group_threshold(self, threshold: int):
         """
@@ -272,7 +271,6 @@ class Scheme:
     def add_share(self, share_list: List[str]) -> Dict[str, str]:
 
         share_str = " ".join(share_list)  # Normalize spaces
-        logger.info("Share:", share_str)
         share = Share.from_mnemonic(share_str)
 
         if len(self.groups) == 0:

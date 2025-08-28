@@ -63,16 +63,8 @@ class SeedSlipBitsView(View):
     View for entering a Slip39 seed phrase in bits.
     """
 
-    def __init__(self, is_random_seed: bool = False):
+    def __init__(self):
         super().__init__()
-
-        if is_random_seed:
-            self.bits = bf.get_random_bits_for_slip(
-                self.controller.storage.mnemonic_length
-            )
-
-            self.controller.storage.set_scheme_params(self.bits)
-
         self.bits = self.controller.storage.scheme_params._bits
 
     def run(self):
@@ -133,6 +125,12 @@ class VisualGroupView(View):
         self.groups = self.controller.storage.scheme_params._groups_length
         self.group_threshold = self.controller.storage.scheme_params._group_threshold
 
+        logger.info(
+            "VisualGroupView initialized with %d groups and threshold %d",
+            self.groups,
+            self.group_threshold,
+        )
+
     def run(self):
         """
         Run the view to visualize the groups.
@@ -145,7 +143,7 @@ class VisualGroupView(View):
             text="Groups",
             threshold=self.group_threshold,
             total_members=self.groups,
-            show_passphrase=True,  # Assuming this is a passphrase view
+            passphrase=self.controller.storage.passphrase,
         )
 
         if result == RET_CODE__BACK_BUTTON:
@@ -180,7 +178,7 @@ class ListOfGroupsView(View):
         self.groups = self.controller.storage.scheme_params._groups_length
 
         # create button options for each group
-        self.button_data = [ButtonOption(f"Group {i + 1}") for i in range(self.groups)]
+        self.button_data = [ButtonOption(f"Group {i}") for i in range(self.groups)]
 
         if self.controller.storage.scheme:
             self.fingerprint = self.controller.storage._scheme._wallet.fingerprint
@@ -240,7 +238,9 @@ class VisualSharesView(View):
             text="Shares",
             threshold=self.threshold,
             total_members=self.total_members,
-            show_passphrase=self.is_single_level,
+            passphrase=(
+                self.controller.storage.passphrase if self.is_single_level else None
+            ),
         )
 
         if result == RET_CODE__BACK_BUTTON:
@@ -377,6 +377,7 @@ class DiscardGroupsView(View):
             return Destination(VisualGroupView, skip_current_view=True)
         elif self.button_data[ret] == self.DISCARD_GROUPS:
             # Discard groups scheme
+            self.controller.storage.set_passphrase("")
             self.controller.storage.scheme_params.discard_groups()
             return Destination(BackStackView)
 
@@ -423,6 +424,10 @@ class DiscardSharesView(View):
                 skip_current_view=True,
             )
         elif self.button_data[ret] == self.DISCARD_SHARE:
+            if self.is_single_level:
+                # Discard single level shares scheme
+                self.controller.storage.set_passphrase("")
+
             # Discard shares scheme
             self.controller.storage.scheme_params.update_groups(self.group_index, None)
             return Destination(BackStackView)

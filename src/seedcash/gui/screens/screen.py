@@ -422,13 +422,18 @@ class ButtonListScreen(BaseScreen):
                 "RGBA", size=(2 * self.arrow_half_width, 8), color="black"
             )
             self.up_arrow_img_y = GUIConstants.TOP_NAV_HEIGHT - 8
+
             arrow_draw = ImageDraw.Draw(self.up_arrow_img)
+
             arrow_draw.line(
-                (self.arrow_half_width, 1, 0, 7), fill=GUIConstants.BUTTON_FONT_COLOR
+                (self.arrow_half_width, 1, 0, 7),
+                fill=GUIConstants.BUTTON_FONT_COLOR,
+                width=3,
             )
             arrow_draw.line(
                 (self.arrow_half_width, 1, 2 * self.arrow_half_width, 7),
                 fill=GUIConstants.BUTTON_FONT_COLOR,
+                width=3,
             )
 
             # Create down arrow image
@@ -438,11 +443,14 @@ class ButtonListScreen(BaseScreen):
             self.down_arrow_img_y = self.canvas_height - 16 + 2
             arrow_draw = ImageDraw.Draw(self.down_arrow_img)
             arrow_draw.line(
-                (self.arrow_half_width, 7, 0, 1), fill=GUIConstants.BUTTON_FONT_COLOR
+                (self.arrow_half_width, 7, 0, 1),
+                fill=GUIConstants.BUTTON_FONT_COLOR,
+                width=3,
             )
             arrow_draw.line(
                 (self.arrow_half_width, 7, 2 * self.arrow_half_width, 1),
                 fill=GUIConstants.BUTTON_FONT_COLOR,
+                width=3,
             )
 
         # Set initial selected button

@@ -4,7 +4,8 @@ from gettext import gettext as _
 from seedcash.models.btc_functions import BitcoinFunctions as bf
 from seedcash.gui.screens import RET_CODE__BACK_BUTTON
 from seedcash.gui.screens.screen import ButtonOption
-from seedcash.models.seed import Seed
+from seedcash.models.settings import Settings
+from seedcash.models.settings_definition import SettingsConstants
 from seedcash.views.view import (
     View,
     Destination,
@@ -22,9 +23,20 @@ Seed Cash Updated Code
 
 # First Generate Seed View
 class SeedCashGenerateSeedView(View):
-    RANDOM_SEED = ButtonOption("Random Seed")
+    def __init__(self):
+        super().__init__()
+        self.RANDOM_SEED = ButtonOption("Random Seed")
 
-    CALCULATE_SEED = ButtonOption("Calculate Last Word")
+        self.CALCULATE_SEED = ButtonOption(
+            "Calculate Last Word"
+            if (
+                Settings.get_instance().get_value(
+                    SettingsConstants.SETTING__SEED_PROTOCOL
+                )
+                == SettingsConstants.SEED_PROTOCOL__BIP39
+            )
+            else "Custom Entropy Seed"
+        )
 
     def run(self):
         from seedcash.gui.screens.generate_seed_screens import (
@@ -177,7 +189,7 @@ class ToolsCalcFinalWordDoneView(View):
         )
 
         final_word = self.controller.storage.get_mnemonic_word(-1)
-        generated_seed = self.controller.storage.get_generated_seed()
+        generated_seed = self.controller.storage.get_seed_wallet()
 
         button_data = [self.FINISH, self.PASSPHRASE]
 
@@ -195,12 +207,12 @@ class ToolsCalcFinalWordDoneView(View):
 
             # Discard the mnemonic and seed after generating the final word
             self.controller.storage.discard_mnemonic()
-            self.controller.discard_seed()
+            self.controller.storage.discard_seed()
 
             return Destination(MainMenuView)
 
         elif button_data[selected_menu_num] == self.PASSPHRASE:
-            from seedcash.views.load_seed_views import SeedAddPassphraseView
+            from seedcash.views.wallet_views import SeedAddPassphraseView
 
             return Destination(
                 SeedAddPassphraseView, view_args={"seed": generated_seed}

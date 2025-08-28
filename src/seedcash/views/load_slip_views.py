@@ -5,6 +5,7 @@ from seedcash.gui.screens.load_seed_screens import SeedMnemonicEntryScreen
 from seedcash.gui.screens.screen import (
     RET_CODE__BACK_BUTTON,
     DireWarningScreen,
+    WarningScreen,
 )
 
 from seedcash.views.view import (
@@ -55,7 +56,7 @@ class SeedSlipMnemonicEntryView(View):
                 and self.controller.storage.mnemonic
                 != [None] * self.controller.storage.mnemonic_length
             ):
-                return Destination(SeedShareInvalidView, skip_current_view=True)
+                return Destination(SeedShareDiscardView, skip_current_view=True)
 
             return Destination(BackStackView)
 
@@ -86,7 +87,9 @@ class SeedSlipMnemonicEntryView(View):
                 except Exception as e:
                     for i in range(self.controller.storage.mnemonic_length):
                         self.controller.back_stack.pop()
-                    return Destination(SeedShareInvalidView)
+                    return Destination(
+                        SeedShareInvalidView, view_args={"error": str(e)}
+                    )
 
                 if self.controller.storage._scheme.is_single_level():
                     return Destination(SingleLevelVisualSchemeView)
@@ -103,8 +106,8 @@ class SingleLevelVisualSchemeView(View):
         super().__init__()
 
         # Ensure the scheme is loaded
-        # if not self.controller.storage.scheme:
-        #     raise ValueError("No scheme loaded. Please load a scheme first.")
+        if not self.controller.storage.scheme:
+            raise ValueError("No scheme loaded. Please load a scheme first.")
 
     def run(self):
         """
@@ -263,6 +266,8 @@ class DiscardSchemeView(View):
             return Destination(BackStackView)
 
         if ret == 0:  # Keep current scheme
+            if self.controller.storage.scheme.is_single_level():
+                return Destination(SingleLevelVisualSchemeView)
             return Destination(VisualLoadedSchemeView)
 
         # Discard current scheme
@@ -312,8 +317,9 @@ class SeedShareInvalidView(View):
     EDIT = ButtonOption("Review & Edit")
     DISCARD = ButtonOption("Discard", button_label_color="red")
 
-    def __init__(self):
+    def __init__(self, error: str):
         super().__init__()
+        self.error = error
         self.mnemonic: list[str] = self.controller.storage._mnemonic
 
     def run(self):
@@ -323,7 +329,7 @@ class SeedShareInvalidView(View):
             title=_("Invalid Share!"),
             status_icon_name=SeedCashIconsConstants.ERROR,
             status_headline=None,
-            text=_("Checksum failure; not a valid scheme share."),
+            text=self.error,
             show_back_button=False,
             button_data=button_data,
         )
@@ -336,5 +342,37 @@ class SeedShareInvalidView(View):
             )
 
         elif button_data[selected_menu_num] == self.DISCARD:
-            self.controller.storage.discard_mnemonic()
-            return Destination(MainMenuView)
+            self.controller.storage.discard_slip_mnemonic()
+            return Destination(BackStackView)
+
+
+class SeedShareDiscardView(View):
+    EDIT = ButtonOption("Review & Edit")
+    DISCARD = ButtonOption("Discard", button_label_color="red")
+
+    def __init__(self):
+        super().__init__()
+        self.mnemonic: list[str] = self.controller.storage._mnemonic
+
+    def run(self):
+        button_data = [self.EDIT, self.DISCARD]
+        selected_menu_num = self.run_screen(
+            WarningScreen,
+            title=_("Discard Share!"),
+            status_icon_name=SeedCashIconsConstants.ERROR,
+            status_headline=None,
+            text=_("Are you sure you want to discard this share?"),
+            show_back_button=False,
+            button_data=button_data,
+        )
+
+        if button_data[selected_menu_num] == self.EDIT:
+            return Destination(
+                SeedSlipMnemonicEntryView,
+                view_args={"cur_word_index": 0},
+                skip_current_view=True,
+            )
+
+        elif button_data[selected_menu_num] == self.DISCARD:
+            self.controller.storage.discard_slip_mnemonic()
+            return Destination(BackStackView)

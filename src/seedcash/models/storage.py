@@ -225,4 +225,5 @@ class SeedStorage:
         """
         self.scheme = None
         self.scheme_params = None
+        self.passphrase = ""
         logger.info("Scheme and parameters discarded.")

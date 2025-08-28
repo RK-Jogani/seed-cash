@@ -33,6 +33,7 @@ class SlipEntryScreen(BaseTopNavScreen):
 
     def __post_init__(self):
         self.show_back_button = True
+        self.title = _("Entropy Bits")
         super().__post_init__()
 
         # Total number of screens
@@ -46,7 +47,7 @@ class SlipEntryScreen(BaseTopNavScreen):
         # cursor position for text entry
         self.cursor_position = 0
 
-        text_entry_display_y = self.top_nav.height
+        text_entry_display_y = self.top_nav.height + 3 * GUIConstants.COMPONENT_PADDING
         text_entry_display_height = 30
 
         # Add text display for the entered bits
@@ -96,10 +97,11 @@ class SlipEntryScreen(BaseTopNavScreen):
         self._dynamic_title()
 
     def _dynamic_title(self):
-        dynamic_title_text = _(f"{len(self.current_bits)}/{self.bits} Entropy Bits")
+        dynamic_title_text = _(f"{len(self.current_bits)}/{self.bits}")
         self.dynamic_title = IconTextLine(
-            screen_x=GUIConstants.TOP_NAV_BUTTON_SIZE + 2 * GUIConstants.EDGE_PADDING,
-            screen_y=0,
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=GUIConstants.TOP_NAV_HEIGHT
+            - int(5 / 2 * GUIConstants.COMPONENT_PADDING),
             height=GUIConstants.TOP_NAV_HEIGHT,
             icon_size=GUIConstants.ICON_FONT_SIZE + 4,
             value_text=dynamic_title_text,
@@ -205,7 +207,7 @@ class SlipBitsScreen(BaseScreen):
         self.bit_height = GUIConstants.BUTTON_HEIGHT
 
         # Position bits below the top navigation
-        self.bit_y = 2 * GUIConstants.COMPONENT_PADDING
+        self.bit_y = 4 * GUIConstants.COMPONENT_PADDING
         self.bit_x = 2 * GUIConstants.COMPONENT_PADDING
         self.bit_width = self.canvas_width - 4 * GUIConstants.COMPONENT_PADDING
 
@@ -277,9 +279,7 @@ class SlipBitsScreen(BaseScreen):
                 [sixteen_bits[j : j + 4] for j in range(0, len(sixteen_bits), 4)]
             )
 
-            bit_y_pos = self.bit_y + (
-                button_count * (self.bit_height + GUIConstants.COMPONENT_PADDING)
-            )
+            bit_y_pos = self.bit_y + (button_count * (self.bit_height))
 
             button = Button(
                 text=formatted_bits,
@@ -289,7 +289,7 @@ class SlipBitsScreen(BaseScreen):
                 screen_x=self.bit_x,
                 screen_y=bit_y_pos,
                 width=self.bit_width,
-                height=self.bit_height,
+                height=self.bit_height + 2 * GUIConstants.COMPONENT_PADDING,
                 is_selected=False,
                 background_color=GUIConstants.BUTTON_BACKGROUND_COLOR,
                 font_color=GUIConstants.BUTTON_FONT_COLOR,
@@ -416,7 +416,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
     text: str = "Groups"
     threshold: int = 1
     total_members: int = 1
-    show_passphrase: bool = False
+    passphrase: str = ""
 
     def __post_init__(self):
         self.show_back_button = True
@@ -508,7 +508,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
     def _buttons(self):
         # Confirm button
         confirm_btn_width = self.canvas_width // 2 - 4 * GUIConstants.EDGE_PADDING
-        if self.show_passphrase:
+        if self.passphrase is not None:
             self.confirm_button = Button(
                 text=_("Confirm"),
                 screen_x=GUIConstants.EDGE_PADDING,
@@ -521,7 +521,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
 
             # Add Passphrase button
             self.add_passphrase_button = Button(
-                text=_("Add Passphrase"),
+                text=_("Add Passphrase") if not self.passphrase else _("Passphrase"),
                 screen_x=confirm_btn_width + 2 * GUIConstants.EDGE_PADDING,
                 screen_y=self.canvas_height
                 - GUIConstants.BUTTON_HEIGHT
@@ -557,22 +557,22 @@ class VisualGroupShareScreen(BaseTopNavScreen):
         label_x = 4 * GUIConstants.BUTTON_HEIGHT
 
         self.total_members_label = TextArea(
-            text=f"{self.text}: {self.total_members}",
+            text=f"{self.text}:{self.total_members}",
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=label_y,
-            width=label_x - 2 * GUIConstants.EDGE_PADDING,
+            width=label_x,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
             is_text_centered=False,
         )
 
         self.threshold_label = TextArea(
-            text=f"Threshold: {self.threshold}",
+            text=f"Threshold:{self.threshold}",
             screen_x=GUIConstants.EDGE_PADDING,
             screen_y=label_y
             + GUIConstants.BUTTON_HEIGHT
             - 2 * GUIConstants.EDGE_PADDING,
-            width=label_x - GUIConstants.EDGE_PADDING,
+            width=label_x,
             font_name=GUIConstants.FIXED_WIDTH_FONT_NAME,
             font_size=GUIConstants.BODY_FONT_SIZE,
             is_text_centered=False,
@@ -674,8 +674,14 @@ class VisualGroupShareScreen(BaseTopNavScreen):
             with self.renderer.lock:
                 # Clear current selection
                 if input == HardwareButtonsConstants.KEY1:
-                    if is_groups:
+                    if is_groups and self.total_members < 16:
                         self.total_members += 1
+                        if (
+                            self.total_members > 1
+                            and self.threshold == 1
+                            and self.text == "Shares"
+                        ):
+                            self.threshold = 2
                         # Ensure threshold doesn't exceed groups when groups increase
                         self.threshold = min(self.threshold, self.total_members)
                         self.components[self.selected_key].is_selected = False
@@ -683,7 +689,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                         self.selected_key = 1  # Reset to first button
                         self.components[self.selected_key].is_selected = True
                         self.components[self.selected_key].render()
-                    else:
+                    elif not is_groups and self.threshold < 16:
                         # Only increase threshold if it won't exceed groups
                         if self.threshold < self.total_members:
                             self.threshold += 1
@@ -728,7 +734,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                     if self.top_nav.is_selected:
                         continue
 
-                    if self.selected_button == 5 and self.show_passphrase:
+                    if self.selected_button == 5 and self.passphrase is not None:
                         self.components[self.selected_button].is_selected = False
                         self.components[self.selected_button].render()
                         self.selected_button = 6
@@ -1190,11 +1196,8 @@ class SingleLevelVisualLoadedSchemeScreen(BaseTopNavScreen):
         self.share_radius_int = int(self.canvas_width // 5)
         self.share_circle_radius = min(80, self.share_radius_int)
         self.share_circle_center = (
-            self.canvas_width // 2,
-            GUIConstants.EDGE_PADDING
-            + GUIConstants.TOP_NAV_TITLE_FONT_SIZE
-            + 20
-            + self.share_circle_radius,
+            self.share_circle_radius + 3 * GUIConstants.EDGE_PADDING,
+            self.canvas_height // 2 - GUIConstants.COMPONENT_PADDING,
         )
 
         edit_review_width = 108
@@ -1230,12 +1233,16 @@ class SingleLevelVisualLoadedSchemeScreen(BaseTopNavScreen):
     def _update_labels(self):
         """Update the text labels with current values"""
         label_y = (
-            max(80, self.share_circle_center[1])
-            + self.share_circle_radius
+            self.canvas_height // 2
+            - GUIConstants.BUTTON_HEIGHT
             + GUIConstants.COMPONENT_PADDING
         )
 
-        label_x = self.canvas_width // 2 - self.share_circle_radius
+        label_x = (
+            self.share_circle_center[0]
+            + self.share_circle_radius
+            + GUIConstants.COMPONENT_PADDING
+        )
 
         # Share label (right side)
         self.members_progress_text = TextArea(

@@ -272,3 +272,68 @@ class SettingTestButtonsScreen(BaseTopNavScreen):
                 self.renderer.show_image()
 
             time.sleep(0.1)
+
+
+class SettingDerivationPathScreen(BaseTopNavScreen):
+    def __post_init__(self):
+        # TRANSLATOR_NOTE: Short for "Derivation Path"; screen to set the derivation path for wallet generation
+        self.title = _("Derivation Path")
+        self.show_back_button = True
+        super().__post_init__()
+
+        self.derivation_btn = Button(
+            text="m/44'/145'/0'",
+            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
+            height=GUIConstants.BUTTON_HEIGHT,
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.top_nav.height + GUIConstants.COMPONENT_PADDING,
+        )
+
+        self.components.append(self.derivation_btn)
+
+        self.confirm_btn = Button(
+            text=_("Confirm"),
+            width=self.canvas_width - 2 * GUIConstants.EDGE_PADDING,
+            height=GUIConstants.BUTTON_HEIGHT,
+            screen_x=GUIConstants.EDGE_PADDING,
+            screen_y=self.canvas_height
+            - GUIConstants.EDGE_PADDING
+            - GUIConstants.BUTTON_HEIGHT,
+        )
+
+        self.components.append(self.confirm_btn)
+
+        self.selected_button = 2
+        self.components[self.selected_button].is_selected = True
+
+    def _run(self):
+        while True:
+            input = self.hw_inputs.wait_for(
+                HardwareButtonsConstants.KEYS__LEFT_RIGHT_UP_DOWN
+                + HardwareButtonsConstants.KEYS__ANYCLICK
+            )
+
+            if input in HardwareButtonsConstants.KEYS__ANYCLICK:
+                return
+
+            if input in [
+                HardwareButtonsConstants.KEY_LEFT,
+                HardwareButtonsConstants.KEY_RIGHT,
+            ]:
+                continue
+
+            if input == HardwareButtonsConstants.KEY_UP:
+                if not self.top_nav.is_selected:
+                    self.components[self.selected_button].is_selected = False
+                    self.components[self.selected_button].render()
+                    self.top_nav.is_selected = True
+                    self.top_nav.render_buttons()
+
+            elif input == HardwareButtonsConstants.KEY_DOWN:
+                if self.top_nav.is_selected:
+                    self.top_nav.is_selected = False
+                    self.top_nav.render_buttons()
+                    self.components[self.selected_button].is_selected = True
+                    self.components[self.selected_button].render()
+
+            self.renderer.show_image()
