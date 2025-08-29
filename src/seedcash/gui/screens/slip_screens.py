@@ -87,7 +87,7 @@ class SlipEntryScreen(BaseTopNavScreen):
         btns_y = (
             self.text_entry_display_y
             + self.text_entry_display_height
-            + GUIConstants.COMPONENT_PADDING
+            + 2 * GUIConstants.COMPONENT_PADDING
         )
 
         key_size = int(3 / 2 * GUIConstants.BUTTON_HEIGHT)
@@ -137,7 +137,7 @@ class SlipEntryScreen(BaseTopNavScreen):
             icon_name=SeedCashIconsConstants.CHEVRON_LEFT,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=2 * GUIConstants.EDGE_PADDING,
-            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            screen_y=btns_y + key_size + GUIConstants.COMPONENT_PADDING,
             width=(key_size),
             height=(key_size),
             is_selected=False,
@@ -148,7 +148,7 @@ class SlipEntryScreen(BaseTopNavScreen):
             icon_name=SeedCashIconsConstants.CHEVRON_RIGHT,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE,
             screen_x=3 * GUIConstants.EDGE_PADDING + key_size,
-            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            screen_y=btns_y + key_size + GUIConstants.COMPONENT_PADDING,
             width=(key_size),
             height=(key_size),
             is_selected=False,
@@ -159,7 +159,7 @@ class SlipEntryScreen(BaseTopNavScreen):
             icon_name=SeedCashIconsConstants.DELETE,
             icon_size=GUIConstants.ICON_INLINE_FONT_SIZE + 4,
             screen_x=4 * GUIConstants.EDGE_PADDING + 2 * key_size,
-            screen_y=btns_y + key_size + 2 * GUIConstants.COMPONENT_PADDING,
+            screen_y=btns_y + key_size + GUIConstants.COMPONENT_PADDING,
             width=(special_key_size),
             height=key_size,
             is_selected=False,
