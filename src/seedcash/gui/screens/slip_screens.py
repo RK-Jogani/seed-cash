@@ -850,7 +850,11 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                         self.selected_key = 2
                         self.components[self.selected_key].is_selected = True
                     else:
-                        self.threshold = max(1, self.threshold - 1)
+                        if self.total_members > 1 and self.text == "Shares":
+                            self.threshold = 2
+                        else:
+                            self.threshold = max(1, self.threshold - 1)
+
                         self.components[self.selected_key].is_selected = False
                         self.components[self.selected_key].render()
                         self.selected_key = 4
@@ -915,9 +919,12 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
 
         self.group_indices = self.scheme.get_group_indices()
 
-        self.processed_groups, self.group_threshold, self.total_groups = (
-            self.scheme.get_scheme_info()
-        )
+        (
+            self.processed_groups,
+            self.group_threshold,
+            self.total_groups,
+            self.completed_groups,
+        ) = self.scheme.get_scheme_info()
 
         self.group_index = 0
 
@@ -960,29 +967,6 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             - GUIConstants.TOP_NAV_BUTTON_SIZE
         )
 
-        # Groups up arrow
-        self.up_button = IconButton(
-            icon_name=SeedCashIconsConstants.PAGE_UP,
-            screen_x=groups_x,
-            screen_y=self.up_btns_y,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            is_text_centered=True,
-        )
-        self.components.append(self.up_button)
-
-        # Groups down arrow
-        self.down_button = IconButton(
-            icon_name=SeedCashIconsConstants.PAGE_DOWN,
-            screen_x=groups_x,
-            screen_y=self.down_btns_y,
-            font_size=GUIConstants.BODY_FONT_SIZE - 3,
-            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
-            is_text_centered=True,
-        )
-        self.components.append(self.down_button)
-
         edit_review_width = 108
 
         # Edit & Review button
@@ -1009,14 +993,44 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             width=edit_review_width,
             height=GUIConstants.BUTTON_HEIGHT,
         )
+
         self.components.append(self.add_share_button)
 
+        # Groups up arrow
+        self.up_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_UP,
+            screen_x=groups_x,
+            screen_y=self.up_btns_y,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+
+        # Groups down arrow
+        self.down_button = IconButton(
+            icon_name=SeedCashIconsConstants.PAGE_DOWN,
+            screen_x=groups_x,
+            screen_y=self.down_btns_y,
+            font_size=GUIConstants.BODY_FONT_SIZE - 3,
+            width=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            height=GUIConstants.TOP_NAV_BUTTON_SIZE,
+            is_text_centered=True,
+        )
+
+        self._show_navigate_btns()
+
         # Set initial selection
+        self.selected_button = 1
         self.selected_key = 1
-        self.selected_button = 3
 
         self.components[self.selected_key].is_selected = True
         self.components[self.selected_button].is_selected = True
+
+    def _show_navigate_btns(self):
+        if self.processed_groups > 1:
+            self.components.append(self.up_button)
+            self.components.append(self.down_button)
+            self.selected_key = 3
 
     def _navigate_groups(self):
         self.shares_count, self.member_threshold = self.scheme.get_group_info(
@@ -1120,7 +1134,7 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             self.group_circle_radius,
             self.total_groups,
             self.group_threshold,
-            self.processed_groups,
+            self.completed_groups,
         )
 
         # Draw Share Circle (right)
@@ -1242,9 +1256,12 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
             with self.renderer.lock:
                 # Clear current selection
                 if input == HardwareButtonsConstants.KEY1:
+                    if self.processed_groups <= 1:
+                        continue
+
                     self.components[self.selected_key].is_selected = False
                     self.components[self.selected_key].render()
-                    self.selected_key = 1
+                    self.selected_key = 3
                     self.components[self.selected_key].is_selected = True
                     self.components[self.selected_key].render()
 
@@ -1253,9 +1270,12 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
                         self._navigate_groups()
 
                 elif input == HardwareButtonsConstants.KEY3:
+                    if self.processed_groups <= 1:
+                        continue
+
                     self.components[self.selected_key].is_selected = False
                     self.components[self.selected_key].render()
-                    self.selected_key = 2
+                    self.selected_key = 4
                     self.components[self.selected_key].is_selected = True
                     self.components[self.selected_key].render()
 
@@ -1271,16 +1291,16 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
                     if self.top_nav.is_selected:
                         continue
 
-                    if self.selected_button == 3:
+                    if self.selected_button == 1:
                         self.components[self.selected_button].is_selected = False
                         self.components[self.selected_button].render()
-                        self.selected_button = 4
+                        self.selected_button = 2
                         self.components[self.selected_button].is_selected = True
                         self.components[self.selected_button].render()
                     else:
                         self.components[self.selected_button].is_selected = False
                         self.components[self.selected_button].render()
-                        self.selected_button = 3
+                        self.selected_button = 1
                         self.components[self.selected_button].is_selected = True
                         self.components[self.selected_button].render()
 
@@ -1288,7 +1308,7 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
                     if self.top_nav.is_selected:
                         self.top_nav.is_selected = False
                         self.top_nav.render_buttons()
-                        self.selected_button = 3
+                        self.selected_button = 1
                         self.components[self.selected_button].is_selected = True
                         self.components[self.selected_button].render()
 
@@ -1305,9 +1325,9 @@ class VisualLoadedSchemeScreen(BaseTopNavScreen):
                 ]:
                     if self.top_nav.is_selected:
                         return RET_CODE__BACK_BUTTON
-                    if self.selected_button == 3:
+                    if self.selected_button == 1:
                         return "EDIT"
-                    if self.selected_button == 4:
+                    if self.selected_button == 2:
                         return "ADD"
 
                 self._render()

@@ -148,8 +148,6 @@ class SettingsConstants:
 
     ALL_WORDLIST_LANGUAGES = [
         (WORDLIST_LANGUAGE__ENGLISH, "English"),
-        (WORDLIST_LANGUAGE__CHINESE, "简体中文 (Chinese)"),
-        (WORDLIST_LANGUAGE__SPANISH, "Español (Spanish)"),
     ]
 
     # Individual SettingsEntry attr_names

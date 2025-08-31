@@ -359,7 +359,7 @@ class DiscardGroupsView(View):
 
         ret = self.run_screen(
             DireWarningScreen,
-            text="Discard Group",
+            text="Discard Groups Scheme",
             button_data=self.button_data,
         )
 

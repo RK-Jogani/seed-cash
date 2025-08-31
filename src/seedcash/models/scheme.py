@@ -213,8 +213,13 @@ class Scheme:
         group_threshold = self.common_params[0].group_threshold
         processed_groups = self.groups.__len__()
 
+        # completed_groups
+        self.completed_groups = len(
+            [group for group in self.groups.values() if group.is_complete()]
+        )
+
         # processed, threshold, total
-        return processed_groups, group_threshold, total_groups
+        return processed_groups, group_threshold, total_groups, self.completed_groups
 
     def get_group_info(self, group_index: int):
         """

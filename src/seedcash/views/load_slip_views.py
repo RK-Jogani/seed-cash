@@ -137,7 +137,9 @@ class SingleLevelVisualSchemeView(View):
             return Destination(DiscardSchemeView)
         elif ret == "EDIT":
             # If it's a multi-level scheme, go to the group entry view
-            return Destination(EditAndReview, view_args={"are_shares": False})
+            return Destination(
+                EditAndReview, view_args={"are_shares": False, "is_single_level": True}
+            )
         elif ret == "ADD":
             # Add a new share to the existing scheme
             return Destination(
@@ -192,10 +194,22 @@ class EditAndReview(View):
     View to display the list of groups.
     """
 
-    def __init__(self, group_index: int = 0, are_shares: bool = False):
+    def __init__(
+        self,
+        group_index: int = 0,
+        are_shares: bool = False,
+        is_single_level: bool = False,
+    ):
         super().__init__()
         self.group_index = group_index
-        self.are_shares = are_shares
+        self.are_shares = are_shares or is_single_level
+        if self.are_shares:
+            if is_single_level:
+                self.text = "Shares"
+            else:
+                self.text = f"Group {self.group_index} Shares"
+        else:
+            self.text = "Groups"
 
         if self.are_shares:
             self.shares = self.controller.storage.scheme.get_shares_indices_of_group(
@@ -215,6 +229,7 @@ class EditAndReview(View):
         """
         ret = self.run_screen(
             GroupShareListScreen,
+            title=self.text,
             show_back_button=True,
             button_data=self.button_data,
         )
