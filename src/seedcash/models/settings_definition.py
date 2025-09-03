@@ -381,13 +381,13 @@ class SettingsDefinition:
             attr_name=SettingsConstants.SETTING__SEED_PROTOCOL,
             type=SettingsConstants.TYPE__SELECT_1,
             selection_options=SettingsConstants.ALL_SEED_PROTOCOLS,
-            default_value=SettingsConstants.SEED_PROTOCOL__SLIP39,
+            default_value=SettingsConstants.SEED_PROTOCOL__BIP39,
         ),
         # Choose Words Settings
         SettingsEntry(
             attr_name=SettingsConstants.SETTING__CHOOSE_WORDS,
             type=SettingsConstants.TYPE__SELECT_1,
-            default_value=SettingsConstants.CHOOSE_SLIP39_WORDS,
+            default_value=SettingsConstants.CHOOSE_BIP39_WORDS,
         ),
         # Hardware config
         SettingsEntry(

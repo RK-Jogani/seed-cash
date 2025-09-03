@@ -285,7 +285,7 @@ class ListOfSharesView(View):
                 self.fingerprint = self.controller.storage._scheme._wallet.fingerprint
 
         # create button options for each group
-        self.button_data = [ButtonOption(f"Shares {i}") for i in self.shares]
+        self.button_data = [ButtonOption(f"Share {i}") for i in self.shares]
 
     def run(self):
         """
@@ -340,7 +340,7 @@ class DiscardGroupsView(View):
     """
 
     KEEP_GROUPS = ButtonOption("Keep")
-    DISCARD_GROUPS = ButtonOption("Discard Group", icon_color="red")
+    DISCARD_GROUPS = ButtonOption("Discard Groups", icon_color="red")
 
     def __init__(self):
         super().__init__()
@@ -381,7 +381,7 @@ class DiscardSharesView(View):
     """
 
     KEEP_SHARE = ButtonOption("Keep")
-    DISCARD_SHARE = ButtonOption("Discard Share", icon_color="red")
+    DISCARD_SHARE = ButtonOption("Discard Shares", icon_color="red")
 
     def __init__(self, group_index: int = 0, is_single_level: bool = False):
         super().__init__()

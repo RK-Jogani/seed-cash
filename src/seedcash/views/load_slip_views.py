@@ -207,7 +207,7 @@ class EditAndReview(View):
             if is_single_level:
                 self.text = "Shares"
             else:
-                self.text = f"Group {self.group_index} Shares"
+                self.text = f"Group {self.group_index}"
         else:
             self.text = "Groups"
 

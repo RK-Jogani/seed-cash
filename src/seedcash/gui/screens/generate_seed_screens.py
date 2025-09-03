@@ -200,9 +200,7 @@ class ToolsCalcFinalWordScreen(ButtonListScreen):
         text_y = GUIConstants.TOP_NAV_HEIGHT
 
         your_input = TextArea(
-            text="Your input: {} {}".format(
-                self.selected_final_bits, "- " * self.num_checksum_bits
-            ),
+            text="Your input: {}".format(self.selected_final_bits),
             screen_x=text_x,
             screen_y=text_y,
         )

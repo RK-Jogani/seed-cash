@@ -162,11 +162,7 @@ class Share:
         iteration_exponent = id_exp_int & ((1 << ITERATION_EXP_LENGTH_BITS) - 1)
 
         if not rs1024.verify_checksum(mnemonic_data, _customization_string(extendable)):
-            raise MnemonicError(
-                'Invalid mnemonic checksum for "{} ...".'.format(
-                    " ".join(mnemonic.split()[: ID_EXP_LENGTH_WORDS + 2])
-                )
-            )
+            raise MnemonicError("Invalid mnemonic checksum")
 
         share_params_data = mnemonic_data[ID_EXP_LENGTH_WORDS : ID_EXP_LENGTH_WORDS + 2]
         share_params_int = _int_from_word_indices(share_params_data)

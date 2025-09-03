@@ -684,7 +684,7 @@ class VisualGroupShareScreen(BaseTopNavScreen):
             + 3 * GUIConstants.COMPONENT_PADDING
             + GUIConstants.BUTTON_HEIGHT
         )
-        label_x = 4 * GUIConstants.BUTTON_HEIGHT
+        label_x = 4 * GUIConstants.BUTTON_HEIGHT + 2 * GUIConstants.EDGE_PADDING
 
         self.total_members_label = TextArea(
             text=f"{self.text}:{self.total_members}",
