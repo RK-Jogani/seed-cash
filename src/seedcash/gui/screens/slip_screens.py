@@ -850,7 +850,11 @@ class VisualGroupShareScreen(BaseTopNavScreen):
                         self.selected_key = 2
                         self.components[self.selected_key].is_selected = True
                     else:
-                        if self.total_members > 1 and self.text == "Shares":
+                        if (
+                            self.total_members > 1
+                            and self.threshold <= 2
+                            and self.text == "Shares"
+                        ):
                             self.threshold = 2
                         else:
                             self.threshold = max(1, self.threshold - 1)
